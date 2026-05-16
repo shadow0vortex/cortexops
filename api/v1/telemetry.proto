@@ -1,0 +1,42 @@
+syntax = "proto3";
+package cortexops.events.v1;
+
+option go_package = "github.com/cortexops/cortexops/api/v1;eventsv1";
+
+import "google/protobuf/timestamp.proto";
+import "events.proto";
+
+// K8sEventMetadata defines metadata specific to Kubernetes state changes.
+message K8sEventMetadata {
+  string namespace = 1;
+  string resource_kind = 2; // e.g., "Pod", "Deployment", "Node"
+  string resource_name = 3;
+  string uid = 4;
+  string resource_version = 5;
+  string action = 6; // e.g., "ADDED", "MODIFIED", "DELETED"
+  string reason = 7; // e.g., "OOMKilled", "CrashLoopBackOff"
+  string message = 8;
+}
+
+// MetricMetadata defines metadata for prometheus-style metrics.
+message MetricMetadata {
+  string metric_name = 1;
+  double value = 2;
+  map<string, string> labels = 3;
+}
+
+// TelemetryEnvelope represents the normalized event structure over NATS.
+message TelemetryEnvelope {
+  string event_id = 1; // Globally unique ID (UUIDv4) for deduplication
+  TraceContext trace_context = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  
+  string source = 4; // e.g., "k8s-informer", "prometheus-scraper"
+  string severity = 5; // e.g., "INFO", "WARNING", "CRITICAL"
+  
+  // Strongly typed payload to avoid raw bytes parsing errors
+  oneof payload {
+    K8sEventMetadata k8s_event = 6;
+    MetricMetadata metric_event = 7;
+  }
+}
