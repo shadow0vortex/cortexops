@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	correlationv1 "github.com/cortexops/cortexops/api/v1"
+	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
 )
 
 // Builder structures the deterministic context fed to the LLM.

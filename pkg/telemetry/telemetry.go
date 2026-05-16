@@ -3,7 +3,7 @@ package telemetry
 import (
 	"context"
 
-	"github.com/cortexops/cortexops/pkg/core"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"

@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	rcav1 "github.com/cortexops/cortexops/api/v1"
+	rcav1 "github.com/shadow0vortex/cortexops/api/v1"
 )
 
 // VectorStore abstracts vector database operations (e.g., Qdrant) for historical memory.

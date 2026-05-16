@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	topologyv1 "github.com/cortexops/cortexops/api/v1"
+	topologyv1 "github.com/shadow0vortex/cortexops/api/v1"
 )
 
 // MemoryGraphStore implements a thread-safe, in-memory directed graph.

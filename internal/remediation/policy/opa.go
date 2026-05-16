@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	correlationv1 "github.com/cortexops/cortexops/api/v1"
-	remediationv1 "github.com/cortexops/cortexops/api/v1"
-	"github.com/cortexops/cortexops/pkg/core"
+	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 )
 
 // OPAEngine implements deterministic policy checking and risk scoring.

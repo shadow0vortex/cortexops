@@ -3,8 +3,8 @@ package core
 import (
 	"context"
 
-	correlationv1 "github.com/cortexops/cortexops/api/v1"
-	remediationv1 "github.com/cortexops/cortexops/api/v1"
+	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
 )
 
 // RemediationExecutor provides the contract for dry-running, executing, and rolling back actions.

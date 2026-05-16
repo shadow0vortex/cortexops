@@ -1,4 +1,4 @@
-module github.com/cortexops/cortexops
+module github.com/shadow0vortex/cortexops
 
 go 1.26.1
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"sort"
 
-	correlationv1 "github.com/cortexops/cortexops/api/v1"
-	eventsv1 "github.com/cortexops/cortexops/api/v1"
-	"github.com/cortexops/cortexops/pkg/core"
+	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 )
 
 // ChainBuilder constructs deterministic propagation chains from a bucket of correlated events.

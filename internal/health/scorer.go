@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cortexops/cortexops/pkg/core"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 )
 
 // Subsystem represents a core component that provides health metrics.

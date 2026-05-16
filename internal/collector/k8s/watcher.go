@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"time"
 
-	eventsv1 "github.com/cortexops/cortexops/api/v1"
-	"github.com/cortexops/cortexops/internal/collector/normalizer"
-	"github.com/cortexops/cortexops/pkg/core"
+	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
+	"github.com/shadow0vortex/cortexops/internal/collector/normalizer"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 	"google.golang.org/protobuf/proto"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"

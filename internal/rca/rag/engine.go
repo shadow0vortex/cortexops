@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"time"
 
-	correlationv1 "github.com/cortexops/cortexops/api/v1"
-	rcav1 "github.com/cortexops/cortexops/api/v1"
-	rcactx "github.com/cortexops/cortexops/internal/rca/context"
-	"github.com/cortexops/cortexops/pkg/core"
+	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	rcav1 "github.com/shadow0vortex/cortexops/api/v1"
+	rcactx "github.com/shadow0vortex/cortexops/internal/rca/context"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

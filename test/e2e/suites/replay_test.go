@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cortexops/cortexops/test/e2e/framework"
+	"github.com/shadow0vortex/cortexops/test/e2e/framework"
 )
 
 func TestReplayIdempotency(t *testing.T) {

@@ -3,8 +3,8 @@ package temporal
 import (
 	"time"
 
-	correlationv1 "github.com/cortexops/cortexops/api/v1"
-	remediationv1 "github.com/cortexops/cortexops/api/v1"
+	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )

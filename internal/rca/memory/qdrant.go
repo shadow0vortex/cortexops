@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	rcav1 "github.com/cortexops/cortexops/api/v1"
+	rcav1 "github.com/shadow0vortex/cortexops/api/v1"
 )
 
 // QdrantClient implements core.VectorStore using the Qdrant REST API.

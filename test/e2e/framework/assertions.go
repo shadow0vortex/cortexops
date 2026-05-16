@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/cortexops/cortexops/pkg/core"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 )
 
 // Assertions provides a suite of deterministic, replay-safe checks.

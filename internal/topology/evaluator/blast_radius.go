@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	topologyv1 "github.com/cortexops/cortexops/api/v1"
-	"github.com/cortexops/cortexops/pkg/core"
+	topologyv1 "github.com/shadow0vortex/cortexops/api/v1"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
