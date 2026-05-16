@@ -1,0 +1,70 @@
+syntax = "proto3";
+package cortexops.events.v1;
+
+option go_package = "github.com/cortexops/cortexops/api/v1;eventsv1";
+
+import "google/protobuf/timestamp.proto";
+
+// TraceContext ensures distributed tracing propagation across the message broker.
+message TraceContext {
+  string trace_id = 1;
+  string span_id = 2;
+  map<string, string> baggage = 3;
+}
+
+// IncidentState represents the formal deterministic lifecycle of an incident.
+enum IncidentState {
+  STATE_UNSPECIFIED = 0;
+  DETECTED = 1;
+  CORRELATED = 2;
+  ANALYZED = 3;
+  PENDING_APPROVAL = 4;
+  REMEDIATING = 5;
+  VERIFYING = 6;
+  RESOLVED = 7;
+  ROLLING_BACK = 8;
+  ESCALATED = 9;
+  ARCHIVED = 10;
+}
+
+// TelemetryEvent represents raw ingested telemetry (Metrics, Logs, Traces).
+message TelemetryEvent {
+  string id = 1;
+  TraceContext trace_context = 2;
+  string source = 3;
+  string type = 4; // e.g., "metric", "log", "k8s_event"
+  bytes payload = 5; // JSON or specialized binary payload
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// CorrelatedIncident represents an incident enriched with topology and causal chains.
+message CorrelatedIncident {
+  string incident_id = 1;
+  TraceContext trace_context = 2;
+  repeated string telemetry_event_ids = 3;
+  string primary_affected_service = 4;
+  repeated string blast_radius_services = 5;
+  double confidence_score = 6;
+  google.protobuf.Timestamp timestamp = 7;
+}
+
+// IncidentStateTransition represents the progression of an incident through the state machine.
+message IncidentStateTransition {
+  string incident_id = 1;
+  TraceContext trace_context = 2;
+  IncidentState previous_state = 3;
+  IncidentState new_state = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  string transition_reason = 6;
+  string actor = 7; // e.g., "system", "opa_policy_engine", "user:shado"
+}
+
+// RemediationCommand represents a deterministic action to be executed by the Operator.
+message RemediationCommand {
+  string command_id = 1;
+  string incident_id = 2;
+  TraceContext trace_context = 3;
+  string action_type = 4; // e.g., "RESTART_POD", "ROLLBACK_DEPLOYMENT"
+  map<string, string> parameters = 5; // e.g., {"namespace": "default", "pod": "api-123"}
+  google.protobuf.Timestamp issued_at = 6;
+}

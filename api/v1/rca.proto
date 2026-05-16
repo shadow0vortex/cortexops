@@ -1,0 +1,43 @@
+syntax = "proto3";
+package cortexops.rca.v1;
+
+option go_package = "github.com/cortexops/cortexops/api/v1;rcav1";
+
+import "google/protobuf/timestamp.proto";
+import "correlation.proto";
+
+// HistoricalSimilarity represents a previously resolved incident structurally similar to the current one.
+message HistoricalSimilarity {
+  string previous_incident_id = 1;
+  float similarity_score = 2; // Cosine similarity (0.0 to 1.0)
+  string resolution_summary = 3;
+}
+
+// RCAEvidence specifies exact telemetry bounds used to generate the report.
+message RCAEvidence {
+  repeated string telemetry_event_ids = 1;
+  int32 token_count = 2;
+  bool was_truncated = 3;
+}
+
+// RCAReport is the immutable, advisory output published by the AI engine.
+message RCAReport {
+  string rca_id = 1;
+  string incident_id = 2;
+  
+  google.protobuf.Timestamp generated_at = 3;
+  
+  // The advisory AI summary
+  string analysis = 4;
+  
+  // Suggested context limits. AI cannot execute this.
+  repeated string advisory_remediation_steps = 5;
+  
+  repeated HistoricalSimilarity historical_context = 6;
+  RCAEvidence grounded_evidence = 7;
+  
+  float confidence_score = 8;
+  
+  // True if the AI backend was unreachable and this is a raw degraded fallback.
+  bool is_degraded = 9;
+}

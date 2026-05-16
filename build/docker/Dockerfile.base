@@ -1,0 +1,31 @@
+# Base image for building CortexOps microservices
+FROM golang:1.22-alpine AS builder
+
+# Install necessary build tools and protoc dependencies
+RUN apk add --no-cache git make protobuf-dev protoc
+
+WORKDIR /app
+
+# Cache dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Install protoc-gen-go
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Copy source code
+COPY . .
+
+# Generate protobufs and build binary (Expects ARG SERVICE_NAME)
+ARG SERVICE_NAME
+RUN make proto
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /go/bin/${SERVICE_NAME} ./cmd/${SERVICE_NAME}
+
+# Final minimal scratch image
+FROM scratch
+ARG SERVICE_NAME
+COPY --from=builder /go/bin/${SERVICE_NAME} /app/service
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+ENTRYPOINT ["/app/service"]

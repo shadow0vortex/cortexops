@@ -1,0 +1,37 @@
+.gemini/
+# Binaries
+bin/
+dist/
+
+# Go
+*.test
+*.out
+coverage.out
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Env
+.env
+.env.*
+
+# Logs
+*.log
+
+# Diagnostics
+*.pprof
+diagnostics/
+tmp/
+
+# Kubernetes
+kubeconfig
+
+# Terraform
+.terraform/
+
+# Gemini
+.gemini/

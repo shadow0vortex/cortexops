@@ -1,0 +1,71 @@
+syntax = "proto3";
+package cortexops.remediation.v1;
+
+option go_package = "github.com/cortexops/cortexops/api/v1;remediationv1";
+
+import "google/protobuf/timestamp.proto";
+import "correlation.proto";
+
+enum ActionType {
+  ACTION_TYPE_UNSPECIFIED = 0;
+  POD_RESTART = 1;
+  DEPLOYMENT_ROLLOUT_RESTART = 2;
+  HORIZONTAL_SCALE = 3;
+}
+
+enum ActionState {
+  STATE_UNSPECIFIED = 0;
+  PROPOSED = 1;
+  POLICY_EVALUATING = 2;
+  APPROVAL_PENDING = 3;
+  APPROVED = 4;
+  REJECTED = 5;
+  DRY_RUNNING = 6;
+  EXECUTING = 7;
+  VERIFYING = 8;
+  SUCCESS = 9;
+  ROLLING_BACK = 10;
+  ROLLBACK_COMPLETE = 11;
+  FAILED = 12;
+}
+
+message RemediationAction {
+  string action_id = 1;
+  string incident_id = 2;
+  ActionType type = 3;
+  ActionState state = 4;
+  
+  string target_namespace = 5;
+  string target_resource = 6;
+  map<string, string> parameters = 7; // e.g., {"replicas": "5"}
+  
+  float risk_score = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message PolicyDecision {
+  bool allowed = 1;
+  string reasoning = 2;
+  repeated string violating_rules = 3;
+}
+
+message ApprovalDecision {
+  bool approved = 1;
+  string approver_id = 2;
+  string comments = 3;
+  google.protobuf.Timestamp decided_at = 4;
+}
+
+message AuditRecord {
+  string audit_id = 1;
+  string incident_id = 2;
+  string action_id = 3;
+  
+  ActionState from_state = 4;
+  ActionState to_state = 5;
+  
+  string actor = 6; // e.g., "PolicyEngine", "HumanApprover", "Executor"
+  string reasoning = 7;
+  google.protobuf.Timestamp timestamp = 8;
+}
