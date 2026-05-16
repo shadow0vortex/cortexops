@@ -1,7 +1,7 @@
 syntax = "proto3";
 package cortexops.correlation.v1;
 
-option go_package = "github.com/cortexops/cortexops/api/v1;correlationv1";
+option go_package = "github.com/shadow0vortex/cortexops/api/v1;correlationv1";
 
 import "google/protobuf/timestamp.proto";
 import "events.proto";

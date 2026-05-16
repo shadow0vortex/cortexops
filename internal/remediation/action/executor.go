@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	remediationv1 "github.com/cortexops/cortexops/api/v1"
-	"github.com/cortexops/cortexops/pkg/core"
+	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"

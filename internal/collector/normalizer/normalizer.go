@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	eventsv1 "github.com/cortexops/cortexops/api/v1"
+	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"

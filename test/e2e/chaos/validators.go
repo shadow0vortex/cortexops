@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cortexops/cortexops/pkg/core"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 )
 
 // Validator asserts system safety invariants during and after chaos injection.

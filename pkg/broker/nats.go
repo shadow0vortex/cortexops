@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/cortexops/cortexops/pkg/core"
-	"github.com/cortexops/cortexops/pkg/retry"
+	"github.com/shadow0vortex/cortexops/pkg/core"
+	"github.com/shadow0vortex/cortexops/pkg/retry"
 	"github.com/nats-io/nats.go"
 )
 

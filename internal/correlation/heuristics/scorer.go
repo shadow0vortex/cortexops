@@ -4,8 +4,8 @@ import (
 	"context"
 	"math"
 
-	eventsv1 "github.com/cortexops/cortexops/api/v1"
-	"github.com/cortexops/cortexops/pkg/core"
+	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 )
 
 // Scorer provides deterministic correlation logic between two telemetry events.

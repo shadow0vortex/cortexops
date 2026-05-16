@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/cortexops/cortexops/internal/collector/normalizer"
-	"github.com/cortexops/cortexops/pkg/core"
+	"github.com/shadow0vortex/cortexops/internal/collector/normalizer"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 	"google.golang.org/protobuf/proto"
 )
 
