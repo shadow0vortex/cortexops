@@ -1,54 +1,71 @@
-.PHONY: all build test lint proto clean
+.PHONY: all build test lint proto clean dev-up dev-down race chaos diagnostics deps proto-lint proto-breaking
 
-# Go parameters
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOTEST=$(GOCMD) test
-GOMOD=$(GOCMD) mod
-GOGET=$(GOCMD) get
+# Docker Compose File
+COMPOSE_FILE := deploy/compose/docker-compose.dev.yaml
 
-# Paths
-API_DIR=api/v1
-PKG_DIR=pkg
+all: proto lint test build
 
-all: proto build test
+# Initialize local dev environment
+dev-up devup:
+	@echo "Starting local dev dependencies..."
+	docker compose -f $(COMPOSE_FILE) up -d
 
-# Protobuf generation (Requires protoc and protoc-gen-go installed)
+dev-down devdown:
+	@echo "Stopping local dev dependencies..."
+	docker compose -f $(COMPOSE_FILE) down -v
+
+# Protobuf generation (Dockerized)
 proto:
 	@echo "Generating Go files from Protobuf definitions..."
-	protoc --proto_path=. \
-		--go_out=. --go_opt=paths=source_relative \
-		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		$(API_DIR)/*.proto
+	docker compose -f $(COMPOSE_FILE) run --rm -w /workspace/api/v1 proto-builder generate
 
-# Fetch dependencies
+proto-lint:
+	@echo "Linting Protobuf definitions..."
+	docker compose -f $(COMPOSE_FILE) run --rm -w /workspace/api/v1 proto-builder lint
+
+proto-breaking:
+	@echo "Checking for breaking Protobuf changes..."
+	docker compose -f $(COMPOSE_FILE) run --rm -w /workspace/api/v1 proto-builder breaking --against '.git#branch=main'
+
+# Fetch dependencies (Dockerized)
 deps:
 	@echo "Tidying and downloading dependencies..."
-	$(GOMOD) tidy
-	$(GOMOD) download
+	docker compose -f $(COMPOSE_FILE) run --rm go-builder go mod tidy
+	docker compose -f $(COMPOSE_FILE) run --rm go-builder go mod download
 
-# Build all binaries
+# Lint Go code (Dockerized)
+lint:
+	@echo "Linting Go code..."
+	docker compose -f $(COMPOSE_FILE) run --rm golangci-lint golangci-lint run -v
+
+# Build all binaries (Dockerized)
 build: deps
 	@echo "Building services..."
-	# $(GOBUILD) -o bin/collector ./cmd/collector
+	docker compose -f $(COMPOSE_FILE) run --rm go-builder go build -o bin/collector ./cmd/placeholder
 	# Add actual builds here as services are created
 
-# Run tests
-test:
+# Run tests (Dockerized)
+test: deps
 	@echo "Running tests..."
-	$(GOTEST) -v -race ./...
+	docker compose -f $(COMPOSE_FILE) run --rm go-builder go test -v ./...
+
+# Run race tests (Dockerized)
+race: deps
+	@echo "Running tests with race detector..."
+	docker compose -f $(COMPOSE_FILE) run --rm -e CGO_ENABLED=1 go-builder go test -v -race ./...
+
+# Run chaos tests (Dockerized)
+chaos: deps
+	@echo "Running chaos tests..."
+	docker compose -f $(COMPOSE_FILE) run --rm go-builder go test -v -tags=chaos ./test/e2e/chaos/...
+
+# Run diagnostics (Dockerized)
+diagnostics:
+	@echo "Running diagnostics..."
+	docker compose -f $(COMPOSE_FILE) run --rm go-builder go run ./cmd/placeholder/main.go -diagnostics || true
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning artifacts..."
 	rm -rf bin/
-	rm -f $(API_DIR)/*.pb.go
-
-# Initialize local dev environment
-dev-up:
-	@echo "Starting local dev dependencies (NATS, Postgres, Qdrant)..."
-	docker-compose -f deploy/compose/docker-compose.yaml up -d
-
-dev-down:
-	@echo "Stopping local dev dependencies..."
-	docker-compose -f deploy/compose/docker-compose.yaml down
+	rm -f api/v1/*.pb.go

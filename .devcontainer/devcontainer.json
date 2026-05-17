@@ -5,8 +5,7 @@
 		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
 		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
 	},
-	"onCreateCommand": "sudo apt-get update && sudo apt-get install -y protobuf-compiler",
-	"updateContentCommand": "go mod download && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/vuln/cmd/govulncheck@latest",
+	"updateContentCommand": "make deps",
 	"postCreateCommand": "make proto",
 	"customizations": {
 		"vscode": {

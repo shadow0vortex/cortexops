@@ -1,7 +1,7 @@
 syntax = "proto3";
 package cortexops.events.v1;
 
-option go_package = "github.com/shadow0vortex/cortexops/api/v1;eventsv1";
+option go_package = "github.com/shadow0vortex/cortexops/api/v1;apiv1";
 
 import "google/protobuf/timestamp.proto";
 import "events.proto";
