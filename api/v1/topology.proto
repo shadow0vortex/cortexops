@@ -1,7 +1,7 @@
 syntax = "proto3";
 package cortexops.topology.v1;
 
-option go_package = "github.com/shadow0vortex/cortexops/api/v1;topologyv1";
+option go_package = "github.com/shadow0vortex/cortexops/api/v1;apiv1";
 
 import "google/protobuf/timestamp.proto";
 import "events.proto";

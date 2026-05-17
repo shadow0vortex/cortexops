@@ -15,55 +15,29 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.22'
-        cache: true
+    - name: Set up Docker Compose
+      run: docker-compose --version
 
-    - name: Install dependencies
-      run: go mod download
-
-    - name: Run gofmt
-      run: |
-        if [ -n "$(gofmt -l .)" ]; then
-          echo "Go code is not formatted. Run 'gofmt -w .'"
-          exit 1
-        fi
-
-    - name: Run go vet
-      run: go vet ./...
-
-    - name: Install staticcheck
-      run: go install honnef.co/go/tools/cmd/staticcheck@latest
-
-    - name: Run staticcheck
-      run: staticcheck ./...
+    - name: Fetch dependencies
+      run: make deps
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v4
-      with:
-        version: v1.55.2
-        args: --timeout=5m
+      run: make lint
 
     - name: Run tests with race detector
-      run: go test -v -race ./...
-
-    - name: Install protoc
-      uses: arduino/setup-protoc@v3
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+      run: make race
 
     - name: Verify Protobuf Generation
       run: |
-        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
         make proto
         if [ -n "$(git status --porcelain api/)" ]; then
           echo "Protobuf generated files are out of sync. Please run 'make proto' and commit."
           exit 1
         fi
 
+    - name: Build binaries
+      run: make build
+
     - name: Run Govulncheck (Dependency Vulnerability Scanning)
       run: |
-        go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck ./...
+        docker compose -f deploy/compose/docker-compose.dev.yaml run --rm go-builder bash -c "go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./..."
