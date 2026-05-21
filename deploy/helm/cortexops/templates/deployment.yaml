@@ -1,64 +1,49 @@
+{{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
+{{- range $service := $services }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-core
+  name: {{ $.Release.Name }}-{{ $service }}
   labels:
     app: cortexops
+    service: {{ $service }}
 spec:
-  replicas: {{ .Values.replicaCount | default 3 }}
+  {{- $svcValues := index $.Values $service }}
+  replicas: {{ $svcValues.replicaCount | default $.Values.replicaCount }}
   selector:
     matchLabels:
       app: cortexops
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
-      maxSurge: 1
+      service: {{ $service }}
   template:
     metadata:
       labels:
         app: cortexops
+        service: {{ $service }}
     spec:
-      serviceAccountName: {{ .Release.Name }}-sa
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - cortexops
-            topologyKey: kubernetes.io/hostname
+      serviceAccountName: {{ $.Values.serviceAccount.name }}
       containers:
-        - name: collector
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          securityContext:
-            runAsNonRoot: true
-            readOnlyRootFilesystem: true
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
+        - name: {{ $service }}
+          image: "{{ $.Values.image.repository }}/{{ $service }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            - name: NATS_URL
+              value: {{ $.Values.nats.url | quote }}
+            - name: TEMPORAL_URL
+              value: {{ $.Values.temporal.host | quote }}
+            - name: QDRANT_URL
+              value: {{ $.Values.qdrant.url | quote }}
+            - name: TOPOLOGY_URL
+              value: "http://{{ $.Release.Name }}-topology:9091"
+          resources:
+            {{- toYaml $svcValues.resources | nindent 12 }}
+          {{- if eq $service "topology" }}
           ports:
-            - containerPort: 9090
-              name: metrics
+            - containerPort: 9091
+              name: diag
           livenessProbe:
             httpGet:
-              path: /healthz
-              port: 9090
-            initialDelaySeconds: 15
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 9090
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          resources:
-            requests:
-              cpu: 500m
-              memory: 512Mi
-            limits:
-              cpu: 1000m
-              memory: 1Gi
+              path: /debug/healthz
+              port: 9091
+          {{- end }}
+{{- end }}

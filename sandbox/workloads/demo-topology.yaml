@@ -1,0 +1,185 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cortexops-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-frontend
+  namespace: cortexops-demo
+  labels:
+    app: frontend
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        tier: frontend
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.24.0
+        ports:
+        - containerPort: 80
+        env:
+        - name: API_URL
+          value: "http://demo-api:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-frontend
+  namespace: cortexops-demo
+spec:
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-api
+  namespace: cortexops-demo
+  labels:
+    app: api
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+        tier: backend
+    spec:
+      containers:
+      - name: api
+        image: bitnami/node-example:0.0.1
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DB_URL
+          value: "postgres://demo-postgres:5432"
+        - name: REDIS_URL
+          value: "redis://demo-redis:6379"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-api
+  namespace: cortexops-demo
+spec:
+  selector:
+    app: api
+  ports:
+  - port: 8080
+    targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-worker
+  namespace: cortexops-demo
+  labels:
+    app: worker
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+        tier: backend
+    spec:
+      containers:
+      - name: worker
+        image: bitnami/node-example:0.0.1
+        env:
+        - name: DB_URL
+          value: "postgres://demo-postgres:5432"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-postgres
+  namespace: cortexops-demo
+  labels:
+    app: postgres
+    tier: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        tier: data
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "password"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-postgres
+  namespace: cortexops-demo
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-redis
+  namespace: cortexops-demo
+  labels:
+    app: redis
+    tier: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        tier: data
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-redis
+  namespace: cortexops-demo
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379

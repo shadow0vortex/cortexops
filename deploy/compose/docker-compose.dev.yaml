@@ -1,7 +1,7 @@
 services:
   nats:
     image: nats:2.10-alpine
-    command: ["--js"]
+    command: ["--js", "-m", "8222"]
     ports:
       - "4222:4222"
       - "8222:8222"
@@ -66,6 +66,87 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     volumes:
       - grafanadata:/var/lib/grafana
+
+  # ---------------------------------------------------------
+  # CortexOps Runtime Services
+  # ---------------------------------------------------------
+  topology:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: topology
+    environment:
+      - DIAG_PORT=9091
+    ports:
+      - "9091:9091"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9091/debug/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    restart: always
+
+  collector:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: collector
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      nats:
+        condition: service_healthy
+    restart: always
+
+  correlator:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: correlator
+    environment:
+      - NATS_URL=nats://nats:4222
+      - TOPOLOGY_URL=http://topology:9091
+    depends_on:
+      nats:
+        condition: service_healthy
+      topology:
+        condition: service_healthy
+    restart: always
+
+  rca:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: rca
+    environment:
+      - NATS_URL=nats://nats:4222
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      nats:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: always
+
+  remediation:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: remediation
+    environment:
+      - TEMPORAL_URL=temporal:7233
+      - TOPOLOGY_URL=http://topology:9091
+    depends_on:
+      temporal:
+        condition: service_started
+      topology:
+        condition: service_healthy
+    restart: always
 
   # ---------------------------------------------------------
   # Developer Tooling

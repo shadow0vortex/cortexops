@@ -14,10 +14,12 @@ If you are opening a PR, you MUST adhere to the following principles:
 ## Development Workflow
 
 1. Fork the repo and create your branch from `main`.
-2. Run `make proto` if you modify gRPC contracts.
-3. Ensure `go test -race ./...` passes.
-4. Run the validation harness: `go test ./test/e2e/...`
+2. Start the development environment: `make dev-up`.
+3. Verify the platform: `make verify-runtime`.
+4. Run unit and race tests: `make test` or `make race`.
+5. Run the validation harness: `make e2e` or `make chaos-test`.
+6. Run the demo bootstrap: `make bootstrap`.
+7. Generate Protobufs if modified: `make proto`.
 
 ## Architectural Reviews
-
-Major changes require an RFC document submitted to `docs/RFCs/`. State your Failure Assumptions clearly.
+Major changes require an RFC document submitted to `docs/architecture/`. State your Failure Assumptions clearly.
