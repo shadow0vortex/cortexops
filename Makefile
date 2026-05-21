@@ -3,29 +3,45 @@
 # Configuration
 COMPOSE_FILE := deploy/compose/docker-compose.dev.yaml
 BIN_DIR      := bin
-SERVICES     := collector
+SERVICES     := collector correlator topology rca remediation
 
 all: proto lint test build
 
 help:
 	@echo "CortexOps Development Makefile"
 	@echo "------------------------------"
-	@echo "dev-up         : Start infrastructure dependencies"
-	@echo "dev-down       : Stop infrastructure dependencies"
+	@echo "dev-up         : Start ALL services (infrastructure + runtime)"
+	@echo "dev-down       : Stop all services"
 	@echo "proto          : Generate Go code from Protobuf"
 	@echo "lint           : Run golangci-lint"
 	@echo "test           : Run all tests"
 	@echo "build          : Build all service binaries"
 	@echo "clean          : Remove build artifacts"
+	@echo "bootstrap      : Deploy demo workloads to Kind/Minikube"
+	@echo "demo-failure   : Inject deterministic failure (SCENARIO=rollout-fail|crashloop|scaling)"
+	@echo "demo-recovery  : Restore demo environment from failure"
+	@echo "diagnostics    : Run live platform diagnostics"
+	@echo "verify-runtime : Assert system health and connectivity"
+	@echo "chaos-test     : Run operational failure validation"
+	@echo "dashboards     : Show dashboard access information"
 
 # Initialize local dev environment
 dev-up devup:
-	@echo "Starting local dev dependencies..."
-	docker compose -f $(COMPOSE_FILE) up -d
+	@echo "Starting CortexOps platform..."
+	docker compose -f $(COMPOSE_FILE) up -d --build
 
 dev-down devdown:
-	@echo "Stopping local dev dependencies..."
+	@echo "Stopping CortexOps platform..."
 	docker compose -f $(COMPOSE_FILE) down -v
+
+# Verification
+verify-runtime:
+	@echo "Verifying runtime health..."
+	docker compose -f $(COMPOSE_FILE) run --rm go-builder bash scripts/verify-runtime.sh
+
+chaos-test:
+	@echo "Running chaos validation..."
+	bash scripts/replay-validation.sh
 
 # Protobuf generation (Dockerized)
 proto:
@@ -75,8 +91,35 @@ chaos: deps
 
 # Run diagnostics (Dockerized)
 diagnostics:
-	@echo "Running diagnostics..."
-	docker compose -f $(COMPOSE_FILE) run --rm go-builder go run ./cmd/collector/main.go -diagnostics || true
+	@echo "Running CortexOps diagnostics..."
+	@echo "--- Platform Health ---"
+	curl -s http://localhost:9091/debug/healthz || echo "Platform offline"
+	@echo "\n--- Active Incidents ---"
+	curl -s http://localhost:9091/debug/incidents/active || echo "Platform offline"
+	@echo "\n--- Topology Blast Radius (Example) ---"
+	curl -s "http://localhost:9091/debug/graph/blast-radius?id=pod/cortexops-demo/demo-api" || echo "Platform offline"
+
+# Demo Automation
+SCENARIO ?= rollout-fail
+
+bootstrap:
+	@echo "Bootstrapping demo environment..."
+	go run ./cmd/demo/main.go bootstrap
+
+demo-failure:
+	@echo "Injecting demo failure ($(SCENARIO))..."
+	go run ./cmd/demo/main.go inject -scenario=$(SCENARIO)
+
+demo-recovery:
+	@echo "Recovering demo environment..."
+	go run ./cmd/demo/main.go recover
+
+dashboards:
+	@echo "CortexOps Dashboards"
+	@echo "--------------------"
+	@echo "Grafana URL: http://localhost:3000"
+	@echo "Dashboards source: deploy/grafana/dashboards/"
+	@echo "Available: cortexops-health.json, cortexops-demo.json"
 
 # Detect OS
 ifeq ($(OS),Windows_NT)

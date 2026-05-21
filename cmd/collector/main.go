@@ -20,17 +20,10 @@ import (
 )
 
 func main() {
-	diagnostics := flag.Bool("diagnostics", false, "Run diagnostics and exit")
 	flag.Parse()
 
 	log := logger.New(logger.Config{Level: "info"})
 	slog.SetDefault(log)
-
-	if *diagnostics {
-		log.Info("Running diagnostics...")
-		// Placeholder for actual diagnostic logic
-		os.Exit(0)
-	}
 
 	log.Info("Starting CortexOps Collector")
 
