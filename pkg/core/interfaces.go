@@ -60,10 +60,3 @@ type TopologyProvider interface {
 	GetDependencies(ctx context.Context, serviceName string) ([]string, error)
 	CalculateBlastRadius(ctx context.Context, serviceName string) ([]string, error)
 }
-
-// RemediationExecutor defines the contract for acting upon the cluster (e.g., via K8s Operator).
-type RemediationExecutor interface {
-	Execute(ctx context.Context, action string, parameters map[string]string) error
-	Verify(ctx context.Context, action string, parameters map[string]string) (bool, error)
-	Rollback(ctx context.Context, action string, parameters map[string]string) error
-}

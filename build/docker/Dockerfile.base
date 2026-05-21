@@ -1,31 +1,40 @@
-# Base image for building CortexOps microservices
-FROM golang:1.22-alpine AS builder
+# =============================================================================
+# CortexOps Base Build Image
+# =============================================================================
+# This Dockerfile is used for building individual services.
+# It uses a multi-stage build to ensure minimal final images.
+# =============================================================================
 
-# Install necessary build tools and protoc dependencies
-RUN apk add --no-cache git make protobuf-dev protoc
+# Stage 1: Build
+FROM golang:1.22.4-alpine3.20 AS builder
 
-WORKDIR /app
+# Install necessary build tools
+RUN apk add --no-cache git ca-certificates
 
-# Cache dependencies
+WORKDIR /workspace
+
+# Copy dependency files and download
 COPY go.mod go.sum ./
 RUN go mod download
-
-# Install protoc-gen-go
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 # Copy source code
 COPY . .
 
-# Generate protobufs and build binary (Expects ARG SERVICE_NAME)
+# Build binary
+# Note: Protos should be generated before running docker build or in a separate step.
+# For CI/CD, we recommend generating them once and then building images.
 ARG SERVICE_NAME
-RUN make proto
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /go/bin/${SERVICE_NAME} ./cmd/${SERVICE_NAME}
 
-# Final minimal scratch image
+# Stage 2: Runtime
 FROM scratch
 ARG SERVICE_NAME
-COPY --from=builder /go/bin/${SERVICE_NAME} /app/service
+
+# Import CA certificates for TLS
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
+# Copy the binary from the builder stage
+COPY --from=builder /go/bin/${SERVICE_NAME} /app/service
+
+# Set the entrypoint
 ENTRYPOINT ["/app/service"]

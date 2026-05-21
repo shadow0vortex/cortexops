@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   nats:
     image: nats:2.10-alpine
@@ -16,9 +14,9 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: cortex
-      POSTGRES_PASSWORD: cortexpassword
-      POSTGRES_DB: cortexops
+      POSTGRES_USER: ${POSTGRES_USER:-cortex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cortexpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-cortexops}
     ports:
       - "5432:5432"
     volumes:
@@ -42,8 +40,8 @@ services:
     environment:
       - DB=postgresql
       - DB_PORT=5432
-      - POSTGRES_USER=cortex
-      - POSTGRES_PWD=cortexpassword
+      - POSTGRES_USER=${POSTGRES_USER:-cortex}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD:-cortexpassword}
       - POSTGRES_SEEDS=postgres
     ports:
       - "7233:7233"
@@ -70,7 +68,7 @@ services:
       - grafanadata:/var/lib/grafana
 
   # ---------------------------------------------------------
-  # Developer Tooling (Run via profiles/commands)
+  # Developer Tooling
   # ---------------------------------------------------------
   proto-builder:
     build:
@@ -79,8 +77,6 @@ services:
     volumes:
       - ../../:/workspace
     working_dir: /workspace
-    profiles:
-      - tools
 
   go-builder:
     image: golang:1.22.4-bullseye
@@ -91,18 +87,14 @@ services:
     working_dir: /workspace
     environment:
       - CGO_ENABLED=0
-    profiles:
-      - tools
 
   golangci-lint:
-    image: golangci/golangci-lint:v1.55.2
+    image: golangci/golangci-lint:v1.59.1
     volumes:
       - ../../:/workspace
       - gomodcache:/go/pkg/mod
       - gocache:/root/.cache/go-build
     working_dir: /workspace
-    profiles:
-      - tools
 
 volumes:
   pgdata:

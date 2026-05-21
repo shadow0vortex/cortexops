@@ -38,7 +38,7 @@ func (b *Builder) Build(incident *correlationv1.CorrelatedIncident) (string, []s
 	}
 
 	sb.WriteString("\n--- TELEMETRY EVIDENCE ---\n")
-	for i, ev := range incident.Evidence {
+	for _, ev := range incident.Evidence {
 		eventIDs = append(eventIDs, ev.EventId)
 		
 		// Very naive token truncation: ~4 chars per token.

@@ -31,9 +31,9 @@ spec:
                 - cortexops
             topologyKey: kubernetes.io/hostname
       containers:
-        - name: core
-          image: "cortexops/core:{{ .Chart.AppVersion }}"
-          imagePullPolicy: IfNotPresent
+        - name: collector
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             runAsNonRoot: true
             readOnlyRootFilesystem: true

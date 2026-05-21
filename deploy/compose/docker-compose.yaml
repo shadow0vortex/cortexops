@@ -18,9 +18,9 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: cortex
-      POSTGRES_PASSWORD: cortexpassword
-      POSTGRES_DB: cortexops
+      POSTGRES_USER: ${POSTGRES_USER:-cortex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cortexpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-cortexops}
     ports:
       - "5432:5432"
     volumes:

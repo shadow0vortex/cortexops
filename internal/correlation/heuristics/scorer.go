@@ -3,6 +3,7 @@ package heuristics
 import (
 	"context"
 	"math"
+	"strings"
 
 	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/shadow0vortex/cortexops/pkg/core"
@@ -51,8 +52,8 @@ func (s *Scorer) Score(ctx context.Context, e1, e2 *eventsv1.TelemetryEnvelope) 
 
 		// 4. Topology Affinity (Requires topology graph lookup)
 		// Assuming NodeIDs are formatted as "kind/namespace/name"
-		n1ID := k1.ResourceKind + "/" + k1.Namespace + "/" + k1.ResourceName
-		n2ID := k2.ResourceKind + "/" + k2.Namespace + "/" + k2.ResourceName
+		n1ID := strings.ToLower(k1.ResourceKind) + "/" + k1.Namespace + "/" + k1.ResourceName
+		n2ID := strings.ToLower(k2.ResourceKind) + "/" + k2.Namespace + "/" + k2.ResourceName
 
 		deps, _ := s.topology.GetDependencies(ctx, n1ID)
 		isAdjacent := false

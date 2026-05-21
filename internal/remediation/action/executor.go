@@ -33,16 +33,36 @@ func (e *K8sExecutor) DryRun(ctx context.Context, action *remediationv1.Remediat
 	opts := metav1.DeleteOptions{
 		DryRun: []string{metav1.DryRunAll},
 	}
+	patchOpts := metav1.PatchOptions{
+		DryRun: []string{metav1.DryRunAll},
+	}
 
-	if action.Type == remediationv1.ActionType_POD_RESTART {
+	switch action.Type {
+	case remediationv1.ActionType_POD_RESTART:
 		err := e.client.CoreV1().Pods(action.TargetNamespace).Delete(ctx, action.TargetResource, opts)
 		if err != nil {
 			return false, fmt.Errorf("dry run failed for pod restart: %w", err)
 		}
 		return true, nil
-	}
 
-	return false, fmt.Errorf("unsupported dry-run action type")
+	case remediationv1.ActionType_DEPLOYMENT_ROLLOUT_RESTART:
+		patch := []byte(`{"spec": {"template": {"metadata": {"annotations": {"cortexops.io/restartedAt": "dry-run"}}}}}`)
+		_, err := e.client.AppsV1().Deployments(action.TargetNamespace).Patch(ctx, action.TargetResource, types.StrategicMergePatchType, patch, patchOpts)
+		if err != nil {
+			return false, fmt.Errorf("dry run failed for rollout: %w", err)
+		}
+		return true, nil
+
+	case remediationv1.ActionType_HORIZONTAL_SCALE:
+		_, err := e.client.AppsV1().Deployments(action.TargetNamespace).GetScale(ctx, action.TargetResource, metav1.GetOptions{})
+		if err != nil {
+			return false, fmt.Errorf("dry run failed for scale (get): %w", err)
+		}
+		return true, nil
+
+	default:
+		return false, fmt.Errorf("unsupported dry-run action type")
+	}
 }
 
 // Execute performs the actual mutation. It is strictly scoped to the 3 allowed actions.
@@ -58,7 +78,7 @@ func (e *K8sExecutor) Execute(ctx context.Context, action *remediationv1.Remedia
 		if err != nil {
 			return fmt.Errorf("failed to delete pod: %w", err)
 		}
-		
+
 	case remediationv1.ActionType_DEPLOYMENT_ROLLOUT_RESTART:
 		// To restart a deployment, we patch its template annotations with a new timestamp
 		patch := []byte(fmt.Sprintf(`{"spec": {"template": {"metadata": {"annotations": {"cortexops.io/restartedAt": "%s"}}}}}`, time.Now().Format(time.RFC3339)))
@@ -66,11 +86,28 @@ func (e *K8sExecutor) Execute(ctx context.Context, action *remediationv1.Remedia
 		if err != nil {
 			return fmt.Errorf("failed to rollout deployment: %w", err)
 		}
-		
+
 	case remediationv1.ActionType_HORIZONTAL_SCALE:
-		// Not fully implemented for brevity, but would update scale subresource
-		return fmt.Errorf("horizontal scaling execution not implemented in stub")
-		
+		replicasStr, ok := action.Parameters["replicas"]
+		if !ok {
+			return fmt.Errorf("replicas parameter missing for scale action")
+		}
+		var replicas int32
+		_, err := fmt.Sscanf(replicasStr, "%d", &replicas)
+		if err != nil {
+			return fmt.Errorf("invalid replicas parameter: %w", err)
+		}
+
+		scale, err := e.client.AppsV1().Deployments(action.TargetNamespace).GetScale(ctx, action.TargetResource, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get scale: %w", err)
+		}
+		scale.Spec.Replicas = replicas
+		_, err = e.client.AppsV1().Deployments(action.TargetNamespace).UpdateScale(ctx, action.TargetResource, scale, metav1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to update scale: %w", err)
+		}
+
 	default:
 		return fmt.Errorf("unrecognized action type")
 	}

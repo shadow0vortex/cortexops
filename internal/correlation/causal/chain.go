@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
-	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/shadow0vortex/cortexops/pkg/core"
 )
 
@@ -19,7 +18,7 @@ func NewChainBuilder(topology core.TopologyProvider) *ChainBuilder {
 }
 
 // Build orders events chronologically and assigns causal links based on topology directed edges.
-func (c *ChainBuilder) Build(ctx context.Context, evidence []*eventsv1.TelemetryEnvelope) (*correlationv1.CausalChain, error) {
+func (c *ChainBuilder) Build(ctx context.Context, evidence []*correlationv1.TelemetryEnvelope) (*correlationv1.CausalChain, error) {
 	if len(evidence) == 0 {
 		return nil, nil
 	}

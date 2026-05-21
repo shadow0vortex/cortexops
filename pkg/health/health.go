@@ -30,7 +30,7 @@ func (s *Server) SetReady(ready bool) {
 func (s *Server) LivenessHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "alive"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "alive"})
 }
 
 // ReadinessHandler responds with 200 OK if the app is marked ready, otherwise 503.
@@ -42,9 +42,9 @@ func (s *Server) ReadinessHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if ready {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]string{"status": "not_ready"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "not_ready"})
 	}
 }

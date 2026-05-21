@@ -7,7 +7,6 @@ import (
 	"time"
 
 	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
-	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/shadow0vortex/cortexops/internal/correlation/causal"
 	"github.com/shadow0vortex/cortexops/internal/correlation/heuristics"
 	"github.com/shadow0vortex/cortexops/pkg/core"
@@ -20,7 +19,7 @@ import (
 type ActiveIncident struct {
 	mu           sync.Mutex
 	ID           string
-	Evidence     []*eventsv1.TelemetryEnvelope
+	Evidence     []*correlationv1.TelemetryEnvelope
 	LastActivity time.Time
 	MaxScore     *correlationv1.CorrelationScore
 }
@@ -49,7 +48,7 @@ func NewEngine(scorer *heuristics.Scorer, chainBuilder *causal.ChainBuilder, pub
 }
 
 // ProcessEvent applies temporal and topological correlation logic to an incoming telemetry envelope.
-func (e *Engine) ProcessEvent(ctx context.Context, incoming *eventsv1.TelemetryEnvelope) error {
+func (e *Engine) ProcessEvent(ctx context.Context, incoming *correlationv1.TelemetryEnvelope) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -78,7 +77,7 @@ func (e *Engine) ProcessEvent(ctx context.Context, incoming *eventsv1.TelemetryE
 		bestIncident.Evidence = append(bestIncident.Evidence, incoming)
 		bestIncident.LastActivity = time.Now()
 		
-		if highestScore > bestIncident.MaxScore.Value {
+		if highestScore > float64(bestIncident.MaxScore.Value) {
 			bestIncident.MaxScore.Value = float32(highestScore)
 			bestIncident.MaxScore.Reasoning = bestReasoning
 		}
@@ -91,7 +90,7 @@ func (e *Engine) ProcessEvent(ctx context.Context, incoming *eventsv1.TelemetryE
 		newID := uuid.New().String()
 		e.incidents[newID] = &ActiveIncident{
 			ID:           newID,
-			Evidence:     []*eventsv1.TelemetryEnvelope{incoming},
+			Evidence:     []*correlationv1.TelemetryEnvelope{incoming},
 			LastActivity: time.Now(),
 			MaxScore: &correlationv1.CorrelationScore{
 				Value:     0.0,
@@ -124,7 +123,7 @@ func (e *Engine) FlushWindows(ctx context.Context) {
 			// In a real system, BlastRadius is calculated here via the core.BlastRadiusEvaluator
 			incident := &correlationv1.CorrelatedIncident{
 				IncidentId:  id,
-				State:       eventsv1.IncidentState_STATE_DETECTED,
+				State:       correlationv1.IncidentState_DETECTED,
 				CreatedAt:   timestamppb.Now(),
 				UpdatedAt:   timestamppb.Now(),
 				Severity:    "HIGH", // Derived logically in a full implementation
@@ -133,8 +132,16 @@ func (e *Engine) FlushWindows(ctx context.Context) {
 				Confidence:  inc.MaxScore,
 			}
 
-			payload, _ := proto.Marshal(incident)
-			e.publisher.Publish(ctx, "cortex.incident.correlated", id, payload)
+			payload, err := proto.Marshal(incident)
+			if err != nil {
+				e.logger.Error("Failed to marshal correlated incident", "incident_id", id, "error", err)
+				inc.mu.Unlock()
+				continue
+			}
+
+			if err := e.publisher.Publish(ctx, "cortex.incident.correlated", id, payload); err != nil {
+				e.logger.Error("Failed to publish correlated incident", "incident_id", id, "error", err)
+			}
 			
 			e.metrics.IncCounter(ctx, "cortexops_correlation_incidents_created_total", map[string]string{"severity": "HIGH"})
 			e.logger.Info("Flushed correlated incident", "incident_id", id, "evidence_count", len(inc.Evidence))
