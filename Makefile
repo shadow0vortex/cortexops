@@ -78,8 +78,17 @@ diagnostics:
 	@echo "Running diagnostics..."
 	docker compose -f $(COMPOSE_FILE) run --rm go-builder go run ./cmd/collector/main.go -diagnostics || true
 
+# Detect OS
+ifeq ($(OS),Windows_NT)
+    RM := powershell.exe -NoProfile -Command Remove-Item -Recurse -Force
+    RM_F := powershell.exe -NoProfile -Command "Get-ChildItem -Path api/v1/*.pb.go | Remove-Item -Force"
+else
+    RM := rm -rf
+    RM_F := rm -f api/v1/*.pb.go
+endif
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning artifacts..."
-	rm -rf $(BIN_DIR)/
-	rm -f api/v1/*.pb.go
+	$(RM) $(BIN_DIR)
+	$(RM_F)
