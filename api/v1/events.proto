@@ -37,8 +37,8 @@ message TelemetryEvent {
   google.protobuf.Timestamp timestamp = 6;
 }
 
-// CorrelatedIncident represents an incident enriched with topology and causal chains.
-message CorrelatedIncident {
+// DetectedIncident represents an incident identified by the collection layer.
+message DetectedIncident {
   string incident_id = 1;
   TraceContext trace_context = 2;
   repeated string telemetry_event_ids = 3;

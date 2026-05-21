@@ -111,7 +111,9 @@ func (b *NatsBroker) Subscribe(ctx context.Context, subject string, handler core
 		err := handler(msgCtx, msg.Data)
 		if err != nil {
 			b.logger.Error("Failed to process message, sending Nak", "subject", msg.Subject, "error", err)
-			msg.Nak() // Nak instructs JetStream to redeliver after a delay
+			if nerr := msg.Nak(); nerr != nil {
+				b.logger.Error("Failed to NAK message", "error", nerr)
+			}
 			return
 		}
 

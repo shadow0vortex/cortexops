@@ -6,3 +6,4 @@ plugins:
   - plugin: go-grpc
     out: .
     opt: paths=source_relative
+    strategy: all

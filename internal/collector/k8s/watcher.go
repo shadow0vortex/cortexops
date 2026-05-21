@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/shadow0vortex/cortexops/internal/collector/normalizer"
 	"github.com/shadow0vortex/cortexops/pkg/core"
 	"google.golang.org/protobuf/proto"
@@ -40,7 +39,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 	factory := informers.NewSharedInformerFactory(w.client, 10*time.Minute)
 	eventInformer := factory.Core().V1().Events().Informer()
 
-	eventInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = eventInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			w.handleEvent(ctx, obj)
 		},

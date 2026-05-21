@@ -2,9 +2,7 @@ package broker
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
-	"time"
 )
 
 // Broker represents a generic interface for message bus interactions.

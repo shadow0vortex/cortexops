@@ -45,11 +45,14 @@ func (d *K8sDiscovery) Start(ctx context.Context) error {
 	factory := informers.NewSharedInformerFactory(d.client, 10*time.Minute)
 	
 	podInformer := factory.Core().V1().Pods().Informer()
-	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, err := podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) { d.handlePod(ctx, obj, false) },
 		UpdateFunc: func(old, new interface{}) { d.handlePod(ctx, new, false) },
 		DeleteFunc: func(obj interface{}) { d.handlePod(ctx, obj, true) },
 	})
+	if err != nil {
+		return fmt.Errorf("failed to add event handler: %w", err)
+	}
 
 	// Setup other informers (Deployments, Services, etc.) similarly...
 
@@ -73,7 +76,9 @@ func (d *K8sDiscovery) handlePod(ctx context.Context, obj interface{}, isDelete 
 	nodeID := fmt.Sprintf("pod/%s/%s", pod.Namespace, pod.Name)
 
 	if isDelete {
-		d.store.DeleteNode(ctx, nodeID)
+		if err := d.store.DeleteNode(ctx, nodeID); err != nil {
+			d.logger.Error("Failed to delete node from topology", "node_id", nodeID, "error", err)
+		}
 		d.metrics.IncCounter(ctx, "cortexops_topology_nodes_total", map[string]string{"type": "POD", "action": "deleted"})
 		return
 	}
@@ -87,12 +92,16 @@ func (d *K8sDiscovery) handlePod(ctx context.Context, obj interface{}, isDelete 
 		LastUpdated: timestamppb.Now(),
 	}
 
-	d.store.UpsertNode(ctx, node)
+	if err := d.store.UpsertNode(ctx, node); err != nil {
+		d.logger.Error("Failed to upsert node in topology", "node_id", nodeID, "error", err)
+	}
 	d.metrics.SetGauge(ctx, "cortexops_topology_nodes_total", 1, map[string]string{"type": "POD"})
 
 	// Create edge: POD is SCHEDULED_ON NODE
 	if pod.Spec.NodeName != "" {
 		targetNodeID := fmt.Sprintf("node/%s", pod.Spec.NodeName)
-		d.store.UpsertEdge(ctx, nodeID, targetNodeID, topologyv1.EdgeType_SCHEDULED_ON)
+		if err := d.store.UpsertEdge(ctx, nodeID, targetNodeID, topologyv1.EdgeType_SCHEDULED_ON); err != nil {
+			d.logger.Error("Failed to upsert edge in topology", "source", nodeID, "target", targetNodeID, "error", err)
+		}
 	}
 }

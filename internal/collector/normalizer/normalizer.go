@@ -36,7 +36,7 @@ func (n *Normalizer) NormalizeK8sEvent(ctx context.Context, k8sEvent *corev1.Eve
 		eventID = uuid.New().String()
 	}
 
-	metadata := &eventsv1.K8sEventMetadata{
+	metadata := &eventsv1.K8SEventMetadata{
 		Namespace:       k8sEvent.InvolvedObject.Namespace,
 		ResourceKind:    k8sEvent.InvolvedObject.Kind,
 		ResourceName:    k8sEvent.InvolvedObject.Name,
