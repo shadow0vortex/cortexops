@@ -29,16 +29,16 @@ func (m *MockMetricsRecorder) SetGauge(ctx context.Context, name string, value f
 func (m *MockMetricsRecorder) ObserveHistogram(ctx context.Context, name string, value float64, labels map[string]string) {}
 
 func TestEngine_ProcessAndFlush(t *testing.T) {
-	scorer := heuristics.NewScorer(nil, slog.New(slog.NewTextHandler(os.Stdout, nil)))
-	chainBuilder := causal.NewChainBuilder(nil, slog.New(slog.NewTextHandler(os.Stdout, nil)))
+	scorer := heuristics.NewScorer(nil)
+	chainBuilder := causal.NewChainBuilder(nil)
 	publisher := &MockPublisher{}
 	engine := NewEngine(scorer, chainBuilder, publisher, &MockMetricsRecorder{}, slog.New(slog.NewTextHandler(os.Stdout, nil)))
 	
 	ctx := context.Background()
 	event := &correlationv1.TelemetryEnvelope{
-		SourceId: "node-1",
-		Payload: &correlationv1.TelemetryEnvelope_Event{
-			Event: &correlationv1.TopologyEvent{Title: "CPU Spike"},
+		Source: "node-1",
+		Payload: &correlationv1.TelemetryEnvelope_K8SEvent{
+			K8SEvent: &correlationv1.K8SEventMetadata{Message: "CPU Spike"},
 		},
 	}
 

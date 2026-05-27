@@ -7,15 +7,13 @@ import (
 
 	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
 	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
-	"github.com/shadow0vortex/cortexops/pkg/health"
 )
 
 type mockMetrics struct{}
 func (m *mockMetrics) IncCounter(ctx context.Context, name string, labels map[string]string) {}
 func (m *mockMetrics) ObserveHistogram(ctx context.Context, name string, value float64, labels map[string]string) {}
 func (m *mockMetrics) SetGauge(ctx context.Context, name string, value float64, labels map[string]string) {}
-func (m *mockMetrics) Register() error { return nil }
-func (m *mockMetrics) GetHealthHandler() health.Handler { return health.NewHandler() }
+
 
 func TestOPAEngine_Evaluate(t *testing.T) {
 	metrics := &mockMetrics{}
