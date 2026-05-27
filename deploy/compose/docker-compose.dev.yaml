@@ -179,7 +179,7 @@ services:
     working_dir: /workspace
 
   go-builder:
-    image: golang:1.22.4-alpine3.20
+    image: golang:1.25.0-alpine
     volumes:
       - ../../:/workspace
       - gomodcache:/go/pkg/mod
@@ -189,7 +189,7 @@ services:
       - CGO_ENABLED=0
 
   golangci-lint:
-    image: golangci/golangci-lint:v1.59.1-alpine
+    image: golangci/golangci-lint:latest-alpine
     volumes:
       - ../../:/workspace
       - gomodcache:/go/pkg/mod

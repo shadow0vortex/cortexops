@@ -65,7 +65,7 @@ deps:
 # Lint Go code (Dockerized)
 lint:
 	@echo "Linting Go code..."
-	docker compose -f $(COMPOSE_FILE) run --rm golangci-lint golangci-lint run -v --timeout 5m
+	docker compose -f $(COMPOSE_FILE) run --rm golangci-lint golangci-lint run -v --timeout 10m
 
 # Build all binaries (Dockerized)
 build: deps $(SERVICES)
