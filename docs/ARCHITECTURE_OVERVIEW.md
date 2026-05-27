@@ -11,8 +11,8 @@ CortexOps is built as a set of decoupled microservices, each with a single respo
 
 ### 2. Topology Service
 - **Role**: Dependency Graph.
-- **Tech**: In-memory Directed Graph + Diagnostics API.
-- **Capability**: BFS traversal for blast-radius analysis.
+- **Tech**: In-memory Directed Graph + Asynchronous PostgreSQL Persistence.
+- **Capability**: BFS traversal for blast-radius analysis with resilient state recovery on restart.
 
 ### 3. Correlation Engine
 - **Role**: Causality Detection.

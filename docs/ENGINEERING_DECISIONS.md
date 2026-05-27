@@ -7,8 +7,8 @@ This document tracks the foundational design choices made during the development
 - **Rationale**: Enables independent scaling, failure isolation, and enforces clear interface boundaries. It also reflects real-world Kubernetes-native patterns.
 
 ## 2. In-Memory Graph for Topology
-- **Decision**: Thread-safe in-memory graph store exposed via HTTP.
-- **Rationale**: Prioritized sub-millisecond query performance for real-time correlation over complex persistent graph DBs. For phase 7, this provides the best balance of speed and simplicity.
+- **Decision**: Thread-safe in-memory graph store backed by asynchronous PostgreSQL persistence and SHA-256 state hashing.
+- **Rationale**: Prioritizes sub-millisecond query performance for real-time correlation while ensuring resilient, crash-safe state recovery. Asynchronous snapshotting prevents database IO overhead from blocking the fast-path correlation pipeline.
 
 ## 3. Heuristic Scoring over Probabilistic Models
 - **Decision**: Weighted scoring based on TraceIDs, time, and topology.
