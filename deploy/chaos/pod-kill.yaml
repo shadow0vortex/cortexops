@@ -1,0 +1,14 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: remediation-pod-kill
+  namespace: cortexops
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    labelSelectors:
+      app: remediation
+  duration: '10s'
+  scheduler:
+    cron: '@every 1m'
