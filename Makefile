@@ -28,11 +28,11 @@ help:
 # Initialize local dev environment
 dev-up devup:
 	@echo "Starting CortexOps platform..."
-	docker compose -f $(COMPOSE_FILE) up -d --build
+	docker compose -f $(COMPOSE_FILE) --profile full up -d --build
 
 dev-down devdown:
 	@echo "Stopping CortexOps platform..."
-	docker compose -f $(COMPOSE_FILE) down -v
+	docker compose -f $(COMPOSE_FILE) --profile full down -v
 
 # Verification
 verify-runtime:
