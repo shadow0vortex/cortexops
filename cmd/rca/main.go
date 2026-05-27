@@ -7,25 +7,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/shadow0vortex/cortexops/internal/rca/rag"
+	"github.com/shadow0vortex/cortexops/internal/rca/llm"
 	"github.com/shadow0vortex/cortexops/internal/rca/memory"
+	"github.com/shadow0vortex/cortexops/internal/rca/rag"
 	"github.com/shadow0vortex/cortexops/pkg/broker"
 	"github.com/shadow0vortex/cortexops/pkg/logger"
 	"github.com/shadow0vortex/cortexops/pkg/telemetry"
 	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"google.golang.org/protobuf/proto"
 )
-
-// MockAI implements core.LLMClient and core.EmbeddingClient for demo purposes.
-type MockAI struct{}
-
-func (m *MockAI) GenerateEmbeddings(ctx context.Context, text string) ([]float32, error) {
-	return make([]float32, 384), nil // Fake embedding vector
-}
-
-func (m *MockAI) GenerateRCA(ctx context.Context, prompt string) (string, error) {
-	return "DEMO ANALYSIS: The incident appears to be caused by a misconfigured image tag in the frontend deployment, leading to ImagePullBackOff.", nil
-}
 
 func main() {
 	log := logger.New(logger.Config{Level: "info"})
@@ -52,8 +42,9 @@ func main() {
 	}
 	vectorDB := memory.NewQdrantClient(qdrantURL, "incidents")
 
-	// Initialize AI Client (Stubbed for demo)
-	aiClient := &MockAI{}
+	// Initialize Real AI Client
+	openAIKey := os.Getenv("OPENAI_API_KEY")
+	aiClient := llm.NewOpenAIClient(openAIKey)
 
 	// Initialize metrics
 	metrics := telemetry.NewPrometheusMetrics()

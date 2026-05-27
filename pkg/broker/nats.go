@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/shadow0vortex/cortexops/pkg/core"
@@ -93,7 +94,10 @@ func (b *NatsBroker) Publish(ctx context.Context, subject string, eventID string
 
 // Subscribe implements core.Subscriber. Handles backpressure and safe acknowledgements.
 func (b *NatsBroker) Subscribe(ctx context.Context, subject string, handler core.EventHandler) error {
-	group := "cortex-consumer-group"
+	// We derive a unique durable name from the subject to avoid "subject does not match consumer" errors
+	// when multiple subscribers use the same default group name but different subjects.
+	// We replace dots with underscores because NATS durable names cannot contain dots.
+	group := "cortex-consumer-" + strings.ReplaceAll(subject, ".", "_")
 	
 	// MaxDeliver sets the dead-letter queue (DLQ) threshold. After 3 failures, NATS stops redelivering.
 	subOpts := []nats.SubOpt{

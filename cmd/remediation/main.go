@@ -19,6 +19,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -43,19 +44,24 @@ func main() {
 	// Initialize K8s client
 	var config *rest.Config
 	var err error
+	var k8sClient kubernetes.Interface
+
 	config, err = rest.InClusterConfig()
 	if err != nil {
 		kubeconfig := filepath.Join(homedir.HomeDir(), ".kube", "config")
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
-			log.Error("Failed to load kubeconfig", "error", err)
-			os.Exit(1)
+			log.Warn("Failed to load kubeconfig, falling back to fake clientset for development", "error", err)
+			k8sClient = fake.NewSimpleClientset()
 		}
 	}
-	k8sClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Error("Failed to create kubernetes client", "error", err)
-		os.Exit(1)
+
+	if k8sClient == nil {
+		k8sClient, err = kubernetes.NewForConfig(config)
+		if err != nil {
+			log.Error("Failed to create kubernetes client", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	// Initialize Temporal client
@@ -85,7 +91,7 @@ func main() {
 	// Initialize dependencies
 	policyEngine := policy.NewOPAEngine(topoClient, metrics, log)
 	auditStore := &MemoryAuditStore{}
-	approvalWorkflow := approval.NewSlackWorkflow(auditStore, metrics, log)
+	approvalWorkflow := approval.NewDeterministicApprovalWorkflow(auditStore, metrics, log)
 	executor := action.NewK8sExecutor(k8sClient, metrics, log)
 
 	activities := temporal.NewActivities(policyEngine, approvalWorkflow, executor)

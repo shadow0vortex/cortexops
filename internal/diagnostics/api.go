@@ -1,7 +1,6 @@
 package diagnostics
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -43,13 +42,22 @@ func (a *API) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleListNodes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// In a full implementation, this would query the graph store
-	// For now, return a placeholder response
+	nodes, err := a.graphStore.ListNodes(ctx)
+	if err != nil {
+		a.log.Error("Failed to list nodes", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "failed to list nodes",
+		})
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"nodes": []interface{}{},
-		"count": 0,
+		"nodes": nodes,
+		"count": len(nodes),
 	})
 }
 
@@ -65,7 +73,7 @@ func (a *API) handleBlastRadius(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := r.Context()
 	impacted, err := a.graphStore.CalculateBlastRadius(ctx, nodeID)
 	if err != nil {
 		a.log.Error("Failed to calculate blast radius", "nodeID", nodeID, "error", err)
@@ -76,7 +84,6 @@ func (a *API) handleBlastRadius(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
