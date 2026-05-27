@@ -15,11 +15,11 @@ Designed for high-scale Site Reliability Engineering (SRE) teams, CortexOps addr
 ## 🚀 Key Features
 
 *   **Telemetry Normalization**: Ingests disparate K8s events and metrics into strongly-typed Protobuf envelopes.
-*   **Topology Intelligence**: Real-time directed graph maintaining cluster dependencies for sub-millisecond blast-radius traversal.
-*   **Causal Correlation**: Heuristic-based scoring engine that groups symptoms into incidents using TraceIDs, time, and topology.
-*   **Advisory RAG RCA**: Context-grounded AI analysis retrieving historical patterns from Qdrant Vector DB.
-*   **Durable Remediation**: Temporal-orchestrated workflows for `POD_RESTART`, `ROLLOUT_RESTART`, and `SCALING`, with automatic verification and rollback.
-*   **Governance by OPA**: Every action is validated against Open Policy Agent allowlists before execution.
+*   **Topology Intelligence**: In-memory Directed Graph backed by asynchronous PostgreSQL persistence, maintaining cluster dependencies for sub-millisecond blast-radius traversal.
+*   **Causal Correlation**: Deterministic heuristic-based scoring engine that groups symptoms into incidents using TraceIDs, time, and topology, fortified against event flooding.
+*   **Advisory RAG RCA**: Context-grounded AI analysis via a live LLM integration and Qdrant Vector DB, complete with strict degraded-mode heuristics for safety.
+*   **Durable Remediation**: Temporal-orchestrated workflows for `POD_RESTART`, `ROLLOUT_RESTART`, and `SCALING`, with deterministic verification and strict rollback state capture.
+*   **Governance by OPA**: Every action is rigorously validated against a fail-closed Open Policy Agent (OPA) engine before execution.
 
 ---
 
@@ -47,30 +47,26 @@ graph LR
 ## 🚦 Quick Start
 
 ### 1. Start Infrastructure & Services
-Spin up the full stack (NATS, Temporal, Qdrant, Postgres, Grafana + CortexOps Microservices) in one command:
+Deploy the full stack (NATS, Temporal, Qdrant, Postgres, Grafana + CortexOps Microservices):
 ```bash
 make dev-up
 ```
 
 ### 2. Verify System Health
+Ensure all subsystems (PostgreSQL, Temporal, Qdrant) are online:
 ```bash
 make verify-runtime
 ```
 
-### 3. Bootstrap Demo Environment
-Deploy the synthetic microservice topology into your cluster:
+### 3. Bootstrap Cluster Integration
+Deploy CortexOps DaemonSets and Webhooks into your cluster:
 ```bash
 make bootstrap
 ```
 
-### 4. Inject a Failure Scenario
-```bash
-make demo-failure SCENARIO=rollout-fail
-```
-
-### 5. Observe Results
-- **Grafana**: `http://localhost:3000` (Incident Tracking)
-- **Temporal UI**: `http://localhost:8233` (Remediation Lifecycle)
+### 4. Monitor Operations
+- **Grafana**: `http://localhost:3000` (Incident Tracking & OPA Metrics)
+- **Temporal UI**: `http://localhost:8233` (Remediation Lifecycle & Rollbacks)
 - **Diagnostics API**: `make diagnostics`
 
 ---
@@ -90,11 +86,9 @@ Every remediation is dry-run against the K8s API. If an anomaly is detected, or 
 
 ## 📂 Documentation
 
-*   [**Demo Guide**](docs/DEMO_GUIDE.md): Detailed walkthrough of the platform in action.
 *   [**Architecture Overview**](docs/ARCHITECTURE_OVERVIEW.md): Component roles and communication matrix.
-*   [**Engineering Decisions**](docs/ENGINEERING_DECISIONS.md): Why we built it this way.
-*   [**Interview Talking Points**](docs/INTERVIEW_TALKING_POINTS.md): Technical deep-dive for recruiters and engineers.
-*   [**Operational Playbooks**](docs/playbooks/INCIDENT_RESPONSE.md): Runbooks for platform maintenance.
+*   [**Engineering Decisions**](docs/ENGINEERING_DECISIONS.md): The rationale behind our architectural design.
+*   [**Operational Playbooks**](docs/playbooks/INCIDENT_RESPONSE.md): Runbooks for platform maintenance and incident response.
 
 ---
 
