@@ -25,6 +25,7 @@ func NewAPI(graphStore *graph.MemoryGraphStore) *API {
 // RegisterRoutes registers all diagnostics API routes.
 func (a *API) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /health", a.handleHealth)
+	mux.HandleFunc("GET /debug/healthz", a.handleHealth)
 	mux.HandleFunc("GET /topology/nodes", a.handleListNodes)
 	mux.HandleFunc("GET /topology/blast-radius/{nodeID}", a.handleBlastRadius)
 }
