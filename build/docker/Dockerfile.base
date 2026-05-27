@@ -15,16 +15,17 @@ WORKDIR /workspace
 
 # Copy dependency files and download
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # Copy source code
 COPY . .
 
 # Build binary
-# Note: Protos should be generated before running docker build or in a separate step.
-# For CI/CD, we recommend generating them once and then building images.
 ARG SERVICE_NAME
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /go/bin/${SERVICE_NAME} ./cmd/${SERVICE_NAME}
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /go/bin/${SERVICE_NAME} ./cmd/${SERVICE_NAME}
 
 # Stage 2: Runtime
 FROM alpine:3.20

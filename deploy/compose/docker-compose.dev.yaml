@@ -1,6 +1,7 @@
 services:
   nats:
     image: nats:2.10-alpine
+    profiles: ["infra", "cortexops", "full"]
     command: ["--js", "-m", "8222"]
     ports:
       - "4222:4222"
@@ -9,10 +10,12 @@ services:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/varz"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 10s
 
   postgres:
     image: postgres:15-alpine
+    profiles: ["infra", "cortexops", "full"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-cortex}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cortexpassword}
@@ -26,9 +29,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
 
   qdrant:
     image: qdrant/qdrant:v1.8.0
+    profiles: ["ai", "cortexops", "full"]
     ports:
       - "6333:6333"
       - "6334:6334"
@@ -37,6 +42,7 @@ services:
 
   temporal:
     image: temporalio/auto-setup:1.23.0
+    profiles: ["infra", "remediation", "cortexops", "full"]
     environment:
       - DB=postgresql
       - DB_PORT=5432
@@ -49,9 +55,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "temporal cluster health || tctl cluster health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
 
   prometheus:
     image: prom/prometheus:v2.51.0
+    profiles: ["observability", "full"]
     ports:
       - "9090:9090"
     volumes:
@@ -59,6 +72,7 @@ services:
 
   grafana:
     image: grafana/grafana:10.4.0
+    profiles: ["observability", "full"]
     ports:
       - "3000:3000"
     environment:
@@ -76,6 +90,7 @@ services:
       dockerfile: build/docker/Dockerfile.base
       args:
         SERVICE_NAME: topology
+    profiles: ["cortexops", "full"]
     environment:
       - DIAG_PORT=9091
     ports:
@@ -93,6 +108,7 @@ services:
       dockerfile: build/docker/Dockerfile.base
       args:
         SERVICE_NAME: collector
+    profiles: ["cortexops", "full"]
     environment:
       - NATS_URL=nats://nats:4222
     depends_on:
@@ -106,6 +122,7 @@ services:
       dockerfile: build/docker/Dockerfile.base
       args:
         SERVICE_NAME: correlator
+    profiles: ["cortexops", "full"]
     environment:
       - NATS_URL=nats://nats:4222
       - TOPOLOGY_URL=http://topology:9091
@@ -122,6 +139,7 @@ services:
       dockerfile: build/docker/Dockerfile.base
       args:
         SERVICE_NAME: rca
+    profiles: ["cortexops", "ai", "full"]
     environment:
       - NATS_URL=nats://nats:4222
       - QDRANT_URL=http://qdrant:6333
@@ -138,6 +156,7 @@ services:
       dockerfile: build/docker/Dockerfile.base
       args:
         SERVICE_NAME: remediation
+    profiles: ["cortexops", "remediation", "full"]
     environment:
       - TEMPORAL_URL=temporal:7233
       - TOPOLOGY_URL=http://topology:9091
@@ -160,7 +179,7 @@ services:
     working_dir: /workspace
 
   go-builder:
-    image: golang:1.22.4-bullseye
+    image: golang:1.22.4-alpine3.20
     volumes:
       - ../../:/workspace
       - gomodcache:/go/pkg/mod
@@ -170,11 +189,12 @@ services:
       - CGO_ENABLED=0
 
   golangci-lint:
-    image: golangci/golangci-lint:v1.59.1
+    image: golangci/golangci-lint:v1.59.1-alpine
     volumes:
       - ../../:/workspace
       - gomodcache:/go/pkg/mod
       - gocache:/root/.cache/go-build
+      - golangcilintcache:/root/.cache/golangci-lint
     working_dir: /workspace
 
 volumes:
@@ -184,3 +204,4 @@ volumes:
   grafanadata:
   gomodcache:
   gocache:
+  golangcilintcache:
