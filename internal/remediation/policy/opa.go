@@ -48,6 +48,18 @@ func (e *OPAEngine) Evaluate(ctx context.Context, incident *correlationv1.Correl
 	defer func() {
 		e.metrics.ObserveHistogram(ctx, "cortexops_remediation_policy_evaluation_seconds", time.Since(start).Seconds(), nil)
 	}()
+	// Fail-closed guard: if the calling context is already cancelled (e.g., upstream
+	// timeout, orchestrator abort), refuse to evaluate and deny by default. OPA's
+	// PreparedEvalQuery.Eval() may complete too fast to observe cancellation internally.
+	if err := ctx.Err(); err != nil {
+		e.logger.Error("OPA evaluation skipped: context already cancelled", "error", err)
+		e.metrics.IncCounter(ctx, "cortexops_remediation_policy_errors_total", nil)
+		return &remediationv1.PolicyDecision{
+			Allowed:        false,
+			Reasoning:      fmt.Sprintf("Policy engine context cancelled: %v", err),
+			ViolatingRules: []string{"CONTEXT_CANCELLED"},
+		}, nil
+	}
 
 	input := map[string]interface{}{
 		"action": map[string]interface{}{
