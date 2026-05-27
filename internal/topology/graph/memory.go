@@ -37,17 +37,38 @@ func (g *MemoryGraphStore) UpsertNode(ctx context.Context, node *topologyv1.Topo
 	return nil
 }
 
-// DeleteNode removes a node and all its outward edges. (Inbound edges will be orphaned until cleanup).
+// DeleteNode removes a node and all its outward edges.
 func (g *MemoryGraphStore) DeleteNode(ctx context.Context, nodeID string) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	delete(g.nodes, nodeID)
 	delete(g.edges, nodeID)
-	
-	// A robust implementation requires scanning to remove inbound edges to `nodeID` as well,
-	// handled asynchronously by the orphaned-edge cleanup job.
+
+	// Scan all other nodes' edges and remove those pointing to nodeID (orphaned inbound edges)
+	for srcID, edges := range g.edges {
+		var newEdges []*topologyv1.TopologyEdge
+		for _, edge := range edges {
+			if edge.TargetId != nodeID {
+				newEdges = append(newEdges, edge)
+			}
+		}
+		g.edges[srcID] = newEdges
+	}
+
 	return nil
+}
+
+// ListNodes returns all nodes in the graph.
+func (g *MemoryGraphStore) ListNodes(ctx context.Context) ([]*topologyv1.TopologyNode, error) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	var nodes []*topologyv1.TopologyNode
+	for _, node := range g.nodes {
+		nodes = append(nodes, node)
+	}
+	return nodes, nil
 }
 
 // UpsertEdge idempotently adds a directional relationship.

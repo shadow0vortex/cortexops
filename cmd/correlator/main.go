@@ -37,6 +37,13 @@ func main() {
 	}
 	defer natsBroker.Close()
 
+	// Initialize Streams
+	err = natsBroker.InitStream("INCIDENTS", []string{"cortex.incident.>"})
+	if err != nil {
+		log.Error("Failed to initialize incidents stream", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize Topology Client
 	topoURL := os.Getenv("TOPOLOGY_URL")
 	if topoURL == "" {

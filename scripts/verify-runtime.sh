@@ -8,8 +8,16 @@ SERVICES=("topology:9091/debug/healthz" "nats:8222/varz" "prometheus:9090/-/heal
 
 for svc in "${SERVICES[@]}"; do
   echo "Checking $svc..."
-  if ! curl -s "http://$svc" > /dev/null; then
-    echo "ERROR: Service $svc is unreachable"
+  SUCCESS=false
+  for i in {1..30}; do
+    if curl -s "http://$svc" > /dev/null; then
+      SUCCESS=true
+      break
+    fi
+    sleep 2
+  done
+  if [ "$SUCCESS" = false ]; then
+    echo "ERROR: Service $svc is unreachable after 60s"
     exit 1
   fi
 done
