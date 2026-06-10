@@ -1,4 +1,5 @@
-import { RemediationLifecycle } from "@/components/diagrams/RemediationLifecycle";
+import dynamic from "next/dynamic";
+const RemediationLifecycle = dynamic(() => import("@/components/diagrams/RemediationLifecycle").then(mod => mod.RemediationLifecycle));
 import { Workflow, ShieldAlert, GitBranch, History } from "lucide-react";
 import Link from "next/link";
 

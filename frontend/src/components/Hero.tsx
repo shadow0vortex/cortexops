@@ -2,6 +2,7 @@
 
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 
 export function Hero() {
@@ -42,7 +43,7 @@ export function Hero() {
           className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-cortex-500/30 bg-cortex-500/10 text-cortex-300 text-sm font-medium mb-8 backdrop-blur-md"
         >
           <span className="w-2 h-2 rounded-full bg-cortex-400 animate-slow-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]"></span>
-          A Control Plane for Infrastructure Reliability
+          Deterministic Infrastructure Intelligence for Kubernetes
         </motion.div>
 
         <motion.h1 
@@ -68,7 +69,7 @@ export function Hero() {
             CortexOps continuously analyzes infrastructure telemetry, correlates distributed failures, evaluates remediation policies, and orchestrates deterministic recovery workflows across Kubernetes environments.
           </p>
           <p>
-            Built around event-driven architecture, topology awareness, replay-safe execution, and policy-governed automation.
+            Built around topology-aware correlation, replay-safe durable workflows, and strict policy-governed execution.
           </p>
         </motion.div>
 
@@ -79,10 +80,10 @@ export function Hero() {
           className="flex flex-wrap items-center gap-4"
         >
           <Link 
-            href="/platform"
+            href="/docs"
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black font-semibold hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
           >
-            Explore Platform <ChevronRight className="w-4 h-4" />
+            View Documentation <ChevronRight className="w-4 h-4" />
           </Link>
           <Link 
             href="/architecture"
@@ -113,7 +114,7 @@ export function Hero() {
           className="absolute w-32 h-32 rounded-3xl border border-cortex-400/50 bg-black/60 backdrop-blur-xl flex items-center justify-center z-20"
         >
           <div className="w-24 h-24 rounded-xl flex items-center justify-center relative overflow-hidden mix-blend-screen">
-            <img src="/logo.png" alt="CortexOps Logo" className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(168,85,247,0.8)] scale-110" />
+            <Image src="/logo.png" alt="CortexOps Logo" width={96} height={96} priority className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(168,85,247,0.8)] scale-110" />
           </div>
         </motion.div>
 

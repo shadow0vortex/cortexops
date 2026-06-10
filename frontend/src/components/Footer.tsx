@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function Footer() {
   const sections = [
@@ -6,27 +7,27 @@ export function Footer() {
       title: "Platform",
       links: [
         { label: "Architecture", href: "/architecture" },
+        { label: "Platform Overview", href: "/platform" },
+        { label: "Feature Matrix", href: "/resources/feature-matrix" },
         { label: "Workflows", href: "/workflows" },
-        { label: "Observability", href: "/observability" },
-        { label: "Deploy", href: "/deploy" },
       ]
     },
     {
       title: "Resources",
       links: [
         { label: "Documentation", href: "/docs" },
-        { label: "Security", href: "/security" },
-        { label: "Contributing", href: "/docs/contributing" },
-        { label: "Changelog", href: "/docs/changelog" },
+        { label: "Production Readiness", href: "/resources/production-readiness" },
+        { label: "Deployment Guide", href: "/docs/deployment" },
+        { label: "Security", href: "/docs/security-governance" },
       ]
     },
     {
       title: "Community",
       links: [
         { label: "GitHub", href: "https://github.com/shadow0vortex/cortexops" },
-        { label: "Discussions", href: "https://github.com/shadow0vortex/cortexops/discussions" },
-        { label: "Issues", href: "https://github.com/shadow0vortex/cortexops/issues" },
-        { label: "Roadmap", href: "/docs/roadmap" },
+        { label: "LinkedIn", href: "https://linkedin.com" },
+        { label: "Engineering Decisions", href: "/docs/engineering" },
+        { label: "Load Test Results", href: "/resources/load-testing" },
       ]
     }
   ];
@@ -39,7 +40,7 @@ export function Footer() {
         <div className="flex flex-col gap-4 max-w-xs">
           <div className="flex items-center gap-2">
             <div className="w-10 h-8 flex items-center justify-center mix-blend-screen overflow-hidden">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)] scale-125" />
+              <Image src="/logo.png" alt="Logo" width={40} height={32} className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)] scale-125" />
             </div>
             <span className="text-white font-semibold tracking-tight">CortexOps</span>
           </div>

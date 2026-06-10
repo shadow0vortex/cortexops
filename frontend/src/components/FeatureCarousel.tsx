@@ -6,12 +6,12 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const features = [
+  { id: "telemetry", title: "Telemetry Ingestion", icon: ActivitySquare, desc: "Process massive streams of Kubernetes events with robust backpressure.", list: ["Protobuf normalization", "NATS JetStream routing", "High-throughput parsing", "Event buffering", "Metric extraction"] },
   { id: "topology", title: "Topology Intelligence", icon: Network, desc: "Maintain a live dependency graph of workloads, services, infrastructure resources, and operational relationships.", list: ["Dependency discovery", "Blast radius analysis", "Service relationship mapping", "Failure propagation modeling", "Infrastructure awareness"] },
-  { id: "correlation", title: "Event Correlation Engine", icon: GitMerge, desc: "Convert fragmented operational signals into coherent incidents.", list: ["Temporal correlation", "Trace affinity detection", "Topology-aware scoring", "Incident grouping", "Duplicate suppression"] },
-  { id: "workflows", title: "Replay-Safe Workflows", icon: RefreshCcw, desc: "Durable execution powered by Temporal.", list: ["Deterministic workflows", "Automatic retries", "Failure recovery", "State persistence", "Workflow replay guarantees"] },
-  { id: "rca", title: "AI-Assisted RCA", icon: BrainCircuit, desc: "Operational recommendations grounded in telemetry and historical context.", list: ["Incident summarization", "Failure pattern recognition", "Context-aware recommendations", "Retrieval-augmented analysis", "Degraded-mode fallback"] },
-  { id: "policy", title: "Policy-Governed Remediation", icon: ShieldAlert, desc: "Every action is validated before execution.", list: ["Policy evaluation", "Action approval workflows", "Governance controls", "Rollback protection", "Fail-closed execution"] },
-  { id: "diagnostics", title: "Operational Diagnostics", icon: ActivitySquare, desc: "Deep visibility into the orchestration platform itself.", list: ["Runtime health", "Incident lifecycle visibility", "Workflow diagnostics", "Topology inspection", "Performance metrics"] },
+  { id: "correlation", title: "Event Correlation", icon: GitMerge, desc: "Convert fragmented operational signals into coherent incidents.", list: ["Temporal correlation", "Trace affinity detection", "Topology-aware scoring", "Incident grouping", "Duplicate suppression"] },
+  { id: "rca", title: "RCA Engine", icon: BrainCircuit, desc: "Operational recommendations grounded in telemetry and historical context.", list: ["Incident summarization", "Failure pattern recognition", "Context-aware recommendations", "Retrieval-augmented analysis", "Degraded-mode fallback"] },
+  { id: "remediation", title: "Remediation Engine", icon: ShieldAlert, desc: "Every action is validated before execution.", list: ["Policy evaluation via OPA", "Action approval workflows", "Governance controls", "Rollback protection", "Fail-closed execution"] },
+  { id: "replay", title: "Replay Safety", icon: RefreshCcw, desc: "Durable execution powered by Temporal.", list: ["Deterministic workflows", "Automatic retries", "Idempotent recovery", "State persistence", "Workflow replay guarantees"] },
 ];
 
 const containerVariants: Variants = {

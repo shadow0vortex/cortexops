@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
@@ -24,7 +25,7 @@ export function Navbar() {
         {/* Left: Logo */}
         <div className="flex items-center">
           <div className="w-20 h-16 flex items-center justify-center mix-blend-screen overflow-hidden group hover:scale-110 transition-transform duration-500 origin-left">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]" />
+            <Image src="/logo.png" alt="Logo" width={80} height={64} className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]" />
           </div>
         </div>
 

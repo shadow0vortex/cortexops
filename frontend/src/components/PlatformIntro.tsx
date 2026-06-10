@@ -22,7 +22,7 @@ export function PlatformIntro() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-white mb-6"
         >
-          A Control Plane for Infrastructure Reliability
+          Deterministic Infrastructure Intelligence
         </motion.h2>
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

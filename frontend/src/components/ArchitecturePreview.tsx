@@ -33,47 +33,67 @@ export function ArchitecturePreview() {
         </p>
       </motion.div>
 
-      <div className="w-full h-[600px] flex items-center justify-center perspective-[2000px] mt-12">
-         <motion.div 
-           initial={{ rotateX: 60, rotateZ: -45 }}
-           animate={{ rotateZ: [-45, -35, -45] }}
-           transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-           style={{ transformStyle: 'preserve-3d' }}
-           className="relative w-72 h-72"
-         >
-           {/* Base Floor */}
-           <div className="absolute inset-[-100%] bg-cortex-500/5 blur-[100px] rounded-full translate-z-[-50px]"></div>
-
-           {[...steps].reverse().map((step, i) => (
-             <motion.div
-               key={step}
-               initial={{ translateZ: i * 80 + 800, opacity: 0 }}
-               whileInView={{ translateZ: i * 80, opacity: 1 }}
-               viewport={{ once: true, margin: "-200px" }}
-               transition={{ duration: 1.2, delay: i * 0.15, type: "spring", stiffness: 60 }}
-               style={{ transformStyle: 'preserve-3d' }}
-               className="absolute inset-0 group cursor-pointer"
-             >
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/0 transition-colors duration-500 z-20 pointer-events-none" style={{ transform: 'translateZ(1px)' }}></div>
-                
-                {/* Top Face */}
-                <div className="absolute inset-0 bg-zinc-900/90 border border-cortex-500/40 flex items-center justify-center group-hover:bg-cortex-900/90 transition-all duration-300 shadow-[inset_0_0_30px_rgba(168,85,247,0.15)] group-hover:shadow-[inset_0_0_50px_rgba(168,85,247,0.4)] backdrop-blur-md">
-                  <span className="text-white font-bold tracking-wider text-lg">{step}</span>
+      {/* High-Quality Animated Data Flow Diagram */}
+      <div className="w-full max-w-5xl mx-auto mt-16 relative">
+        {/* Background Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+        
+        <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 md:gap-4 py-12 px-4 z-10">
+          
+          {[
+            { title: "Telemetry Ingestion", desc: "K8s Events", icon: "activity" },
+            { title: "NATS JetStream", desc: "Event Bus", icon: "network" },
+            { title: "Correlation Engine", desc: "Topology Intelligence", icon: "brain" },
+            { title: "Temporal", desc: "Durable Workflows", icon: "history" },
+            { title: "Remediation", desc: "Policy Executed", icon: "shield" }
+          ].map((node, i, arr) => (
+            <div key={node.title} className="flex-1 flex flex-col items-center relative w-full md:w-auto">
+              {/* Connection Line */}
+              {i < arr.length - 1 && (
+                <div className="hidden md:block absolute top-10 left-[60%] w-[80%] h-[2px] bg-zinc-800">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-transparent via-cortex-400 to-transparent w-1/2"
+                    animate={{ x: ["-100%", "200%"] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: i * 0.4 }}
+                  />
                 </div>
+              )}
+              
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+                className="relative group w-20 h-20 mb-4 flex items-center justify-center"
+              >
+                {/* Node Glow */}
+                <div className="absolute inset-0 bg-cortex-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
-                {/* Right Face */}
-                <div className="absolute top-0 right-0 w-6 h-full bg-zinc-950 border-y border-r border-cortex-500/40 origin-right brightness-50 group-hover:brightness-75 transition-all" style={{ transform: 'translateX(100%) rotateY(90deg)' }}></div>
-                
-                {/* Front Face */}
-                <div className="absolute bottom-0 left-0 w-full h-6 bg-black border-x border-b border-cortex-500/40 origin-bottom brightness-75 group-hover:brightness-100 transition-all" style={{ transform: 'translateY(100%) rotateX(-90deg)' }}></div>
-                
-                {/* Connection Beam (except top) */}
-                {i < steps.length - 1 && (
-                  <div className="absolute top-1/2 left-1/2 w-2 h-[80px] bg-cortex-500/30 blur-sm" style={{ transform: 'translate(-50%, -50%) rotateX(-90deg) translateZ(40px)' }}></div>
-                )}
-             </motion.div>
-           ))}
-         </motion.div>
+                {/* Node Container */}
+                <div className="absolute inset-0 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-xl group-hover:border-cortex-400/50 group-hover:scale-110 transition-all duration-300 flex items-center justify-center overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent"></div>
+                  
+                  {node.icon === "activity" && <svg className="w-8 h-8 text-cortex-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
+                  {node.icon === "network" && <svg className="w-8 h-8 text-cortex-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>}
+                  {node.icon === "brain" && <svg className="w-8 h-8 text-cortex-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path></svg>}
+                  {node.icon === "history" && <svg className="w-8 h-8 text-cortex-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
+                  {node.icon === "shield" && <svg className="w-8 h-8 text-cortex-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>}
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 + 0.3 }}
+                className="text-center"
+              >
+                <h3 className="text-white font-semibold text-sm mb-1">{node.title}</h3>
+                <p className="text-zinc-500 text-xs uppercase tracking-widest">{node.desc}</p>
+              </motion.div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

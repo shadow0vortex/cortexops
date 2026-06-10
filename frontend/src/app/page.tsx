@@ -2,7 +2,8 @@ import { Hero } from "@/components/Hero";
 import { StatusStrip } from "@/components/StatusStrip";
 import { FeatureCarousel } from "@/components/FeatureCarousel";
 import { PlatformIntro } from "@/components/PlatformIntro";
-import { ArchitecturePreview } from "@/components/ArchitecturePreview";
+import dynamic from "next/dynamic";
+const ArchitecturePreview = dynamic(() => import("@/components/ArchitecturePreview").then(mod => mod.ArchitecturePreview));
 import { OperationalGuarantees } from "@/components/OperationalGuarantees";
 import { PlatformCta } from "@/components/PlatformCta";
 

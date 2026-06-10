@@ -5,12 +5,11 @@ import { Server, Database, GitMerge, RefreshCcw, ShieldCheck, Zap } from "lucide
 
 export default function ArchitecturePage() {
   const nodes = [
-    { id: 1, title: "Kubernetes Cluster", icon: Server, desc: "Telemetry Collection & eBPF Agents" },
-    { id: 2, title: "NATS JetStream", icon: Database, desc: "Event Backbone" },
-    { id: 3, title: "Correlation Engine", icon: GitMerge, desc: "Topology Intelligence & AI-Assisted RCA", row: true },
-    { id: 4, title: "Temporal Workflows", icon: RefreshCcw, desc: "Replay-Safe Execution" },
-    { id: 5, title: "OPA Policy Layer", icon: ShieldCheck, desc: "Governance & Guardrails" },
-    { id: 6, title: "Remediation Engine", icon: Zap, desc: "Execute • Verify • Rollback" },
+    { id: 1, title: "Telemetry Ingestion", icon: Server, desc: "client-go Informers outputting strongly-typed Protobufs via NATS JetStream" },
+    { id: 2, title: "Topology Graph", icon: Database, desc: "In-memory Directed Graph + Asynchronous PostgreSQL for blast-radius analysis" },
+    { id: 3, title: "Correlation Lifecycle", icon: GitMerge, desc: "Temporal windowing and heuristic scoring to detect causality" },
+    { id: 4, title: "Remediation Workflow", icon: ShieldCheck, desc: "Orchestrated OPA execution with Dry-Run -> Execute -> Verify -> Rollback" },
+    { id: 5, title: "Replay Recovery", icon: RefreshCcw, desc: "Durable Temporal workflows with state persistence and automatic retries" },
   ];
 
   return (
