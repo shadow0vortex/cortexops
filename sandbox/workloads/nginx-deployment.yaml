@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-frontend
+  namespace: default
+  labels:
+    app: demo-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo-frontend
+  template:
+    metadata:
+      labels:
+        app: demo-frontend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.24.0
+        ports:
+        - containerPort: 80
+---
+# Intentionally broken deployment to trigger CortexOps
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-broken-backend
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-broken-backend
+  template:
+    metadata:
+      labels:
+        app: demo-broken-backend
+    spec:
+      containers:
+      - name: backend
+        image: nginx:nonexistent-tag # Will cause ImagePullBackOff
