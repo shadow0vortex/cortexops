@@ -1,0 +1,22 @@
+{{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
+{{- if $.Values.serviceMonitor.enabled }}
+{{- range $service := $services }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $.Release.Name }}-{{ $service }}
+  labels:
+    app: cortexops
+    service: {{ $service }}
+spec:
+  selector:
+    matchLabels:
+      app: cortexops
+      service: {{ $service }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+{{- end }}
+{{- end }}
