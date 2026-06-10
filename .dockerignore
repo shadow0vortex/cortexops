@@ -1,0 +1,6 @@
+.git
+.gemini
+.gemini_security
+frontend/node_modules
+.devcontainer
+sandbox

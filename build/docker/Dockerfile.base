@@ -1,0 +1,41 @@
+# =============================================================================
+# CortexOps Base Build Image
+# =============================================================================
+# This Dockerfile is used for building individual services.
+# It uses a multi-stage build to ensure minimal final images.
+# =============================================================================
+
+# Stage 1: Build
+FROM golang:1.25-alpine AS builder
+
+# Install necessary build tools
+RUN apk add --no-cache git ca-certificates
+
+WORKDIR /workspace
+
+# Copy dependency files and download
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+# Copy source code
+COPY . .
+
+# Build binary
+ARG SERVICE_NAME
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /go/bin/${SERVICE_NAME} ./cmd/${SERVICE_NAME}
+
+# Stage 2: Runtime
+FROM alpine:3.20
+ARG SERVICE_NAME
+
+# Install ca-certificates and wget for health checks
+RUN apk add --no-cache ca-certificates wget
+
+# Copy the binary from the builder stage
+COPY --from=builder /go/bin/${SERVICE_NAME} /app/service
+
+# Set the entrypoint
+ENTRYPOINT ["/app/service"]
