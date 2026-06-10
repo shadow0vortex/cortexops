@@ -1,0 +1,52 @@
+syntax = "proto3";
+package cortexops.correlation.v1;
+
+option go_package = "github.com/shadow0vortex/cortexops/api/v1;apiv1";
+
+import "google/protobuf/timestamp.proto";
+import "events.proto";
+import "telemetry.proto";
+import "topology.proto";
+
+// CorrelationScore represents the deterministic confidence of grouping.
+message CorrelationScore {
+  float value = 1; // 0.0 to 1.0
+  repeated string reasoning = 2; // e.g., ["TraceID Match", "Topology Affinity (1 degree)"]
+}
+
+// CausalLink represents a directional step in the root-cause chain.
+message CausalLink {
+  string cause_event_id = 1;
+  string effect_event_id = 2;
+  string reasoning = 3;
+}
+
+// CausalChain is the ordered representation of how failure propagated.
+message CausalChain {
+  string root_cause_event_id = 1;
+  repeated CausalLink links = 2;
+}
+
+// CorrelatedIncident is the aggregated output published to the lifecycle engine.
+message CorrelatedIncident {
+  string incident_id = 1; // UUID
+  events.v1.IncidentState state = 2;
+  
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+  
+  string title = 5; // e.g., "Deployment API-Server Failing due to Node OOM"
+  string severity = 6;
+  
+  // The raw telemetry events grouped into this incident
+  repeated cortexops.events.v1.TelemetryEnvelope evidence = 7;
+  
+  // The determined propagation path
+  CausalChain causal_chain = 8;
+  
+  // The scope of the failure
+  cortexops.topology.v1.BlastRadiusResult blast_radius = 9;
+  
+  // Highest confidence score achieved during aggregation
+  CorrelationScore confidence = 10;
+}
