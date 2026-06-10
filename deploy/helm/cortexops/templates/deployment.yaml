@@ -1,0 +1,69 @@
+{{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
+{{- range $service := $services }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $service }}
+  labels:
+    app: cortexops
+    service: {{ $service }}
+spec:
+  {{- $svcValues := index $.Values $service }}
+  replicas: {{ $svcValues.replicaCount | default $.Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: cortexops
+      service: {{ $service }}
+  template:
+    metadata:
+      labels:
+        app: cortexops
+        service: {{ $service }}
+    spec:
+      serviceAccountName: {{ $.Values.serviceAccount.name }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: cortexops
+                    service: {{ $service }}
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: {{ $service }}
+          image: "{{ $.Values.image.repository }}/{{ $service }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- if $.Values.securityContext }}
+          securityContext:
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          env:
+            - name: NATS_URL
+              value: {{ $.Values.nats.url | quote }}
+            - name: TEMPORAL_URL
+              value: {{ $.Values.temporal.host | quote }}
+            - name: QDRANT_URL
+              value: {{ $.Values.qdrant.url | quote }}
+            - name: TOPOLOGY_URL
+              value: "http://{{ $.Release.Name }}-topology:9091"
+          resources:
+            {{- toYaml $svcValues.resources | nindent 12 }}
+          {{- if eq $service "topology" }}
+          ports:
+            - containerPort: 9091
+              name: diag
+          livenessProbe:
+            httpGet:
+              path: /debug/healthz
+              port: 9091
+          {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}
