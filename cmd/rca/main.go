@@ -35,6 +35,13 @@ func main() {
 	}
 	defer natsBroker.Close()
 
+	// Initialize RCA Stream
+	err = natsBroker.InitStream("RCA", []string{"cortex.rca.>"})
+	if err != nil {
+		log.Error("Failed to initialize RCA stream", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize Vector Store
 	qdrantURL := os.Getenv("QDRANT_URL")
 	if qdrantURL == "" {
@@ -61,6 +68,7 @@ func main() {
 		if err := proto.Unmarshal(payload, incident); err != nil {
 			return err
 		}
+		log.Info("Validation: RCA processing incident", "incidentID", incident.IncidentId)
 		return rcaEngine.GenerateRCA(ctx, incident)
 	})
 	if err != nil {

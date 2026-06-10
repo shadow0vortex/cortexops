@@ -1,0 +1,38 @@
+{{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
+{{- range $service := $services }}
+{{- $svcValues := index $.Values $service }}
+{{- if and $svcValues.autoscaling $svcValues.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $.Release.Name }}-{{ $service }}
+  labels:
+    app: cortexops
+    service: {{ $service }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $.Release.Name }}-{{ $service }}
+  minReplicas: {{ $svcValues.autoscaling.minReplicas }}
+  maxReplicas: {{ $svcValues.autoscaling.maxReplicas }}
+  metrics:
+    {{- if $svcValues.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $svcValues.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if $svcValues.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $svcValues.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+{{- end }}

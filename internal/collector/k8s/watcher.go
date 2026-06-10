@@ -94,4 +94,5 @@ func (w *Watcher) handleEvent(ctx context.Context, obj interface{}) {
 	}
 
 	w.metrics.IncCounter(ctx, "cortexops_telemetry_published_total", map[string]string{"subject": subject})
+	w.logger.Info("Validation: Collector published telemetry", "eventID", envelope.EventId, "subject", subject)
 }

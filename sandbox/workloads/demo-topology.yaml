@@ -135,7 +135,10 @@ spec:
         image: postgres:15-alpine
         env:
         - name: POSTGRES_PASSWORD
-          value: "password"
+          valueFrom:
+            secretKeyRef:
+              name: cortexops-secrets
+              key: POSTGRES_PASSWORD
 ---
 apiVersion: v1
 kind: Service

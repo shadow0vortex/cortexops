@@ -70,6 +70,7 @@ func main() {
 			if err := proto.Unmarshal(payload, envelope); err != nil {
 				return err
 			}
+			log.Info("Validation: Correlator processing telemetry", "eventID", envelope.EventId, "subject", sub)
 			return corrEngine.ProcessEvent(ctx, envelope)
 		})
 		if err != nil {

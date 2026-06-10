@@ -21,7 +21,7 @@ help:
 	@echo "demo-failure   : Inject deterministic failure (SCENARIO=rollout-fail|crashloop|scaling)"
 	@echo "demo-recovery  : Restore demo environment from failure"
 	@echo "diagnostics    : Run live platform diagnostics"
-	@echo "verify-runtime : Assert system health and connectivity"
+	@echo "validate-pipeline: Run golden path operational validation"
 	@echo "chaos-test     : Run operational failure validation"
 	@echo "dashboards     : Show dashboard access information"
 
@@ -39,9 +39,18 @@ verify-runtime:
 	@echo "Verifying runtime health..."
 	docker compose -f $(COMPOSE_FILE) run --rm go-builder bash scripts/verify-runtime.sh
 
+validate-pipeline:
+	@echo "Running Golden Path Validation..."
+	bash scripts/validate-pipeline.sh
+
+validate-temporal:
+	@echo "Validating Temporal Workflows..."
+	bash scripts/validate-temporal.sh
+
 chaos-test:
-	@echo "Running chaos validation..."
-	bash scripts/replay-validation.sh
+	@echo "Running chaos validation (Duplicate Storm & Idempotency)..."
+	go run ./cmd/chaos/main.go duplicate-storm
+	go run ./cmd/chaos/main.go workflow-idempotency
 
 # Protobuf generation (Dockerized)
 proto:

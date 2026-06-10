@@ -9,7 +9,7 @@
 #   docker run --rm -v "$(pwd):/workspace" cortexops-proto-builder generate
 # =============================================================================
 
-FROM golang:1.22.4-alpine3.20 AS proto-builder
+FROM golang:1.25-alpine AS proto-builder
 
 # ---------------------------------------------------------------------------
 # Pinned tool versions — update these in lockstep, never independently.

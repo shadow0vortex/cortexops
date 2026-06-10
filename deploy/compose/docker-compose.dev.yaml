@@ -40,8 +40,25 @@ services:
     volumes:
       - qdrantdata:/qdrant/storage
 
+  temporal-schema-setup:
+    image: temporalio/admin-tools:1.23.0
+    profiles: ["infra", "remediation", "cortexops", "full"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal create &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal setup-schema -v 0.0 &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal update -schema-dir /etc/temporal/schema/postgresql/v12/temporal/versioned &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal_visibility create &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal_visibility setup-schema -v 0.0 &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal_visibility update -schema-dir /etc/temporal/schema/postgresql/v12/visibility/versioned
+
   temporal:
-    image: temporalio/auto-setup:1.23.0
+    image: temporalio/server:1.23.0
     profiles: ["infra", "remediation", "cortexops", "full"]
     environment:
       - DB=postgresql
@@ -51,10 +68,9 @@ services:
       - POSTGRES_SEEDS=postgres
     ports:
       - "7233:7233"
-      - "8233:8233"
     depends_on:
-      postgres:
-        condition: service_healthy
+      temporal-schema-setup:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "temporal cluster health || tctl cluster health || exit 1"]
       interval: 15s
@@ -111,6 +127,9 @@ services:
     profiles: ["cortexops", "full"]
     environment:
       - NATS_URL=nats://nats:4222
+      - DOCKER_COMPOSE_ENV=true
+    volumes:
+      - ${USERPROFILE}/.kube/config:/root/.kube/config:ro
     depends_on:
       nats:
         condition: service_healthy
@@ -160,12 +179,28 @@ services:
     environment:
       - TEMPORAL_URL=temporal:7233
       - TOPOLOGY_URL=http://topology:9091
+      - NATS_URL=nats://nats:4222
+      - DOCKER_COMPOSE_ENV=true
+    volumes:
+      - ${USERPROFILE}/.kube/config:/root/.kube/config:ro
     depends_on:
       temporal:
         condition: service_started
       topology:
         condition: service_healthy
     restart: always
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    profiles: ["infra", "remediation", "cortexops", "full"]
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:8233
+    ports:
+      - "8233:8080"
+    depends_on:
+      - temporal
+
 
   # ---------------------------------------------------------
   # Developer Tooling
@@ -179,7 +214,7 @@ services:
     working_dir: /workspace
 
   go-builder:
-    image: golang:1.25.0-alpine
+    image: golang:1.25-alpine
     volumes:
       - ../../:/workspace
       - gomodcache:/go/pkg/mod
@@ -189,7 +224,7 @@ services:
       - CGO_ENABLED=0
 
   golangci-lint:
-    image: golangci/golangci-lint:latest-alpine
+    image: golangci/golangci-lint:v1.59.1-alpine
     volumes:
       - ../../:/workspace
       - gomodcache:/go/pkg/mod
