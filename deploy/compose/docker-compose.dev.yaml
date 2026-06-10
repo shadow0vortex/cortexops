@@ -1,0 +1,242 @@
+services:
+  nats:
+    image: nats:2.10-alpine
+    profiles: ["infra", "cortexops", "full"]
+    command: ["--js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/varz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  postgres:
+    image: postgres:15-alpine
+    profiles: ["infra", "cortexops", "full"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cortex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cortexpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-cortexops}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cortex -d cortexops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  qdrant:
+    image: qdrant/qdrant:v1.8.0
+    profiles: ["ai", "cortexops", "full"]
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrantdata:/qdrant/storage
+
+  temporal-schema-setup:
+    image: temporalio/admin-tools:1.23.0
+    profiles: ["infra", "remediation", "cortexops", "full"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal create &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal setup-schema -v 0.0 &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal update -schema-dir /etc/temporal/schema/postgresql/v12/temporal/versioned &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal_visibility create &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal_visibility setup-schema -v 0.0 &&
+        temporal-sql-tool --plugin postgres --ep postgres -p 5432 -u $${POSTGRES_USER:-cortex} -pw $${POSTGRES_PASSWORD:-cortexpassword} --db temporal_visibility update -schema-dir /etc/temporal/schema/postgresql/v12/visibility/versioned
+
+  temporal:
+    image: temporalio/server:1.23.0
+    profiles: ["infra", "remediation", "cortexops", "full"]
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-cortex}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD:-cortexpassword}
+      - POSTGRES_SEEDS=postgres
+    ports:
+      - "7233:7233"
+    depends_on:
+      temporal-schema-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "temporal cluster health || tctl cluster health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    profiles: ["observability", "full"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - promdata:/prometheus
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    profiles: ["observability", "full"]
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - grafanadata:/var/lib/grafana
+
+  # ---------------------------------------------------------
+  # CortexOps Runtime Services
+  # ---------------------------------------------------------
+  topology:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: topology
+    profiles: ["cortexops", "full"]
+    environment:
+      - DIAG_PORT=9091
+    ports:
+      - "9091:9091"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9091/debug/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    restart: always
+
+  collector:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: collector
+    profiles: ["cortexops", "full"]
+    environment:
+      - NATS_URL=nats://nats:4222
+      - DOCKER_COMPOSE_ENV=true
+    volumes:
+      - ${USERPROFILE}/.kube/config:/root/.kube/config:ro
+    depends_on:
+      nats:
+        condition: service_healthy
+    restart: always
+
+  correlator:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: correlator
+    profiles: ["cortexops", "full"]
+    environment:
+      - NATS_URL=nats://nats:4222
+      - TOPOLOGY_URL=http://topology:9091
+    depends_on:
+      nats:
+        condition: service_healthy
+      topology:
+        condition: service_healthy
+    restart: always
+
+  rca:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: rca
+    profiles: ["cortexops", "ai", "full"]
+    environment:
+      - NATS_URL=nats://nats:4222
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      nats:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: always
+
+  remediation:
+    build:
+      context: ../../
+      dockerfile: build/docker/Dockerfile.base
+      args:
+        SERVICE_NAME: remediation
+    profiles: ["cortexops", "remediation", "full"]
+    environment:
+      - TEMPORAL_URL=temporal:7233
+      - TOPOLOGY_URL=http://topology:9091
+      - NATS_URL=nats://nats:4222
+      - DOCKER_COMPOSE_ENV=true
+    volumes:
+      - ${USERPROFILE}/.kube/config:/root/.kube/config:ro
+    depends_on:
+      temporal:
+        condition: service_started
+      topology:
+        condition: service_healthy
+    restart: always
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    profiles: ["infra", "remediation", "cortexops", "full"]
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:8233
+    ports:
+      - "8233:8080"
+    depends_on:
+      - temporal
+
+
+  # ---------------------------------------------------------
+  # Developer Tooling
+  # ---------------------------------------------------------
+  proto-builder:
+    build:
+      context: ../../
+      dockerfile: build/docker/proto.Dockerfile
+    volumes:
+      - ../../:/workspace
+    working_dir: /workspace
+
+  go-builder:
+    image: golang:1.25-alpine
+    volumes:
+      - ../../:/workspace
+      - gomodcache:/go/pkg/mod
+      - gocache:/root/.cache/go-build
+    working_dir: /workspace
+    environment:
+      - CGO_ENABLED=0
+
+  golangci-lint:
+    image: golangci/golangci-lint:v1.59.1-alpine
+    volumes:
+      - ../../:/workspace
+      - gomodcache:/go/pkg/mod
+      - gocache:/root/.cache/go-build
+      - golangcilintcache:/root/.cache/golangci-lint
+    working_dir: /workspace
+
+volumes:
+  pgdata:
+  qdrantdata:
+  promdata:
+  grafanadata:
+  gomodcache:
+  gocache:
+  golangcilintcache:
