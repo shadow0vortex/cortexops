@@ -1,0 +1,70 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Telemetry Ingestion Rate",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "rate(cortexops_telemetry_ingested_total[1m])", "legendFormat": "{{source}}" }
+      ]
+    },
+    {
+      "title": "Active Incidents",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "cortexops_correlation_incidents_created_total", "legendFormat": "Total Incidents" }
+      ]
+    },
+    {
+      "title": "Remediation Status",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "cortexops_remediation_success_total", "legendFormat": "Success" },
+        { "expr": "cortexops_remediation_rollback_total", "legendFormat": "Rollback" }
+      ]
+    },
+    {
+      "title": "Topology Size",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "cortexops_topology_nodes_total", "legendFormat": "Nodes" }
+      ]
+    }
+  ],
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": ["cortexops", "demo"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "CortexOps Demo Overview",
+  "uid": "cortexops-demo",
+  "version": 1
+}
