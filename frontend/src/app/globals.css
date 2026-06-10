@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #000000;
+  --color-foreground: #f8fafc;
+
+  --color-cortex-50: #faf5ff;
+  --color-cortex-100: #f3e8ff;
+  --color-cortex-200: #e9d5ff;
+  --color-cortex-300: #d8b4fe;
+  --color-cortex-400: #c084fc;
+  --color-cortex-500: #a855f7;
+  --color-cortex-600: #9333ea;
+  --color-cortex-700: #7e22ce;
+  --color-cortex-800: #6b21a8;
+  --color-cortex-900: #581c87;
+
+  --color-panel: #0B0B0F;
+  --color-panel-border: rgba(255, 255, 255, 0.1);
+  --color-panel-glow: rgba(124, 58, 237, 0.2);
+
+  --font-sans: "Inter", "Geist", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+}
+
+@layer base {
+  *, ::before, ::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--color-panel-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.15), transparent 60%),
+      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(11, 11, 15, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--color-panel-border);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  }
+  
+  .glass-panel:hover {
+    box-shadow: 0 8px 40px var(--color-panel-glow);
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+  }
+
+  .animate-slow-pulse {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
