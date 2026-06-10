@@ -1,0 +1,65 @@
+syntax = "proto3";
+package cortexops.topology.v1;
+
+option go_package = "github.com/shadow0vortex/cortexops/api/v1;apiv1";
+
+import "google/protobuf/timestamp.proto";
+import "events.proto";
+
+enum NodeType {
+  NODE_TYPE_UNSPECIFIED = 0;
+  NODE = 1;
+  NAMESPACE = 2;
+  DEPLOYMENT = 3;
+  POD = 4;
+  SERVICE = 5;
+  INGRESS = 6;
+  NETWORK_POLICY = 7;
+}
+
+enum EdgeType {
+  EDGE_TYPE_UNSPECIFIED = 0;
+  OWNS = 1;
+  ROUTES_TO = 2;
+  SCHEDULED_ON = 3;
+  ALLOWS_TRAFFIC = 4;
+}
+
+// TopologyNode represents a single entity in the Kubernetes cluster.
+message TopologyNode {
+  string id = 1; // e.g., "pod/default/api-server-123"
+  NodeType type = 2;
+  string namespace = 3;
+  string name = 4;
+  map<string, string> labels = 5;
+  google.protobuf.Timestamp last_updated = 6;
+}
+
+// TopologyEdge represents a directional relationship between two nodes.
+message TopologyEdge {
+  string source_id = 1;
+  string target_id = 2;
+  EdgeType relationship = 3;
+  google.protobuf.Timestamp discovered_at = 4;
+}
+
+// BlastRadiusResult represents the calculated impact of a node failure.
+message BlastRadiusResult {
+  string source_node_id = 1;
+  repeated string impacted_node_ids = 2;
+  int32 traversal_depth = 3;
+  google.protobuf.Timestamp evaluated_at = 4;
+}
+
+// TopologyUpdateEvent is published to the broker when the graph mutates.
+message TopologyUpdateEvent {
+  string event_id = 1;
+  events.v1.TraceContext trace_context = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  
+  oneof update {
+    TopologyNode node_upserted = 4;
+    string node_deleted_id = 5;
+    TopologyEdge edge_upserted = 6;
+  }
+}
