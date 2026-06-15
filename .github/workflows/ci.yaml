@@ -40,13 +40,17 @@ jobs:
         version: v1.55.2
 
     - name: Run tests with race detector
+      env:
+        CGO_ENABLED: 1
       run: go test -v -race ./...
 
     - name: Verify Protobuf Generation
       run: |
         go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.1
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.4.0
-        buf generate api/v1
+        cd api/v1
+        buf generate
+        cd ../..
         if [ -n "$(git status --porcelain api/)" ]; then
           echo "Protobuf generated files are out of sync. Please run 'make proto' and commit."
           exit 1
