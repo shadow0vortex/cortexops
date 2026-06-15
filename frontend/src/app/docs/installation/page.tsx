@@ -1,4 +1,4 @@
-import { Terminal, Copy, HardDrive, Server, Cloud } from "lucide-react";
+import { Terminal, HardDrive, Server, Cloud } from "lucide-react";
 
 export default function InstallationPage() {
   return (

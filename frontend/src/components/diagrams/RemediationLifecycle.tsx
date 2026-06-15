@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, ShieldAlert, Timer, ArrowRight, UserCheck, Play, XCircle } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Timer, UserCheck, Play, XCircle, ActivitySquare } from "lucide-react";
 
 export function RemediationLifecycle() {
   const steps = [
@@ -67,6 +67,3 @@ export function RemediationLifecycle() {
     </div>
   );
 }
-
-// Ensure ActivitySquare is defined or import it
-import { ActivitySquare } from "lucide-react";

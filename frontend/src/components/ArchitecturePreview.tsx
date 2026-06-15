@@ -2,18 +2,6 @@
 
 import { motion } from "framer-motion";
 
-const steps = [
-  "Kubernetes",
-  "Telemetry Collection",
-  "NATS JetStream",
-  "Correlation Engine",
-  "Topology Intelligence",
-  "AI Analysis",
-  "Temporal Workflows",
-  "OPA Governance",
-  "Remediation Execution"
-];
-
 export function ArchitecturePreview() {
   return (
     <section className="py-32 px-6 max-w-7xl mx-auto flex flex-col items-center overflow-hidden">

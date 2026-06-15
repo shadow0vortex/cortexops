@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         destination: '/docs/getting-started',
         permanent: true,
       },
+      {
+        source: '/deploy',
+        destination: '/docs/deployment',
+        permanent: false,
+      },
     ]
   },
 };

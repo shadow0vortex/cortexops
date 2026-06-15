@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Server, Database, GitMerge, RefreshCcw, ShieldCheck, Zap } from "lucide-react";
+import { Server, Database, GitMerge, RefreshCcw, ShieldCheck } from "lucide-react";
 
 export default function ArchitecturePage() {
   const nodes = [

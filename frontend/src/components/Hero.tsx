@@ -30,7 +30,7 @@ export function Hero() {
     <section 
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 min-h-[90vh]"
+      className="relative pt-32 sm:pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-8 lg:gap-16 min-h-[80vh] lg:min-h-[90vh]"
       style={{ perspective: 1500 }}
     >
       
@@ -40,7 +40,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-cortex-500/30 bg-cortex-500/10 text-cortex-300 text-sm font-medium mb-8 backdrop-blur-md"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-cortex-500/30 bg-cortex-500/10 text-cortex-300 text-xs sm:text-sm font-medium mb-6 sm:mb-8 backdrop-blur-md"
         >
           <span className="w-2 h-2 rounded-full bg-cortex-400 animate-slow-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]"></span>
           Deterministic Infrastructure Intelligence for Kubernetes
@@ -50,7 +50,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.1]"
+          className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.1]"
         >
           Infrastructure <br />
           Intelligence <br />
@@ -63,7 +63,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="text-lg text-zinc-400 max-w-xl mb-10 leading-relaxed font-light"
+          className="text-base sm:text-lg text-zinc-400 max-w-xl mb-8 sm:mb-10 leading-relaxed font-light"
         >
           <p className="mb-4">
             CortexOps continuously analyzes infrastructure telemetry, correlates distributed failures, evaluates remediation policies, and orchestrates deterministic recovery workflows across Kubernetes environments.
@@ -77,27 +77,29 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="flex flex-wrap items-center gap-4"
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto"
         >
           <Link 
             href="/docs"
-            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black font-semibold hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-black font-semibold hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+            aria-label="View CortexOps documentation"
           >
             View Documentation <ChevronRight className="w-4 h-4" />
           </Link>
           <Link 
             href="/architecture"
-            className="flex items-center gap-2 px-6 py-3 rounded-full border border-zinc-700 bg-zinc-900/50 text-white font-medium hover:bg-zinc-800 hover:border-zinc-500 transition-all duration-300"
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-zinc-700 bg-zinc-900/50 text-white font-medium hover:bg-zinc-800 hover:border-zinc-500 transition-all duration-300"
+            aria-label="View CortexOps architecture"
           >
             View Architecture
           </Link>
         </motion.div>
       </div>
 
-      {/* Right Graphic (Topology Visualization) */}
+      {/* Right Graphic (Topology Visualization) — hidden on very small screens */}
       <motion.div 
         style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-        className="flex-1 relative w-full aspect-square max-w-2xl lg:max-w-none flex items-center justify-center pointer-events-none z-0"
+        className="flex-1 relative w-full aspect-square max-w-md lg:max-w-none hidden sm:flex items-center justify-center pointer-events-none z-0 overflow-hidden"
       >
         <motion.div 
           initial={{ opacity: 0 }}
@@ -111,9 +113,9 @@ export function Hero() {
           animate={{ scale: [1, 1.05, 1], boxShadow: ["0 0 40px rgba(168,85,247,0.4)", "0 0 100px rgba(168,85,247,0.8)", "0 0 40px rgba(168,85,247,0.4)"] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           style={{ translateZ: 150 }}
-          className="absolute w-32 h-32 rounded-3xl border border-cortex-400/50 bg-black/60 backdrop-blur-xl flex items-center justify-center z-20"
+          className="absolute w-24 h-24 sm:w-32 sm:h-32 rounded-3xl border border-cortex-400/50 bg-black/60 backdrop-blur-xl flex items-center justify-center z-20"
         >
-          <div className="w-24 h-24 rounded-xl flex items-center justify-center relative overflow-hidden mix-blend-screen">
+          <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl flex items-center justify-center relative overflow-hidden mix-blend-screen">
             <Image src="/logo.png" alt="CortexOps Logo" width={96} height={96} priority className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(168,85,247,0.8)] scale-110" />
           </div>
         </motion.div>
@@ -123,17 +125,17 @@ export function Hero() {
         <motion.div style={{ translateZ: 0 }} className="absolute w-[90%] h-[90%] rounded-full border border-dashed border-cortex-500/40 rotate-x-60 animate-[spin_25s_linear_infinite_reverse]"></motion.div>
         <motion.div style={{ translateZ: 80 }} className="absolute w-[60%] h-[60%] rounded-full border border-cortex-500/50 rotate-x-60 animate-[spin_15s_linear_infinite]"></motion.div>
         
-        {/* Distributed Nodes & Telemetry Pulses */}
+        {/* Distributed Nodes & Telemetry Pulses — show fewer on smaller screens */}
         {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5 + i * 0.1, duration: 0.8, ease: "easeOut" }}
-            className="absolute w-12 h-12 rounded-xl border border-zinc-700 bg-zinc-900/80 backdrop-blur-md z-10 flex items-center justify-center shadow-lg"
+            className="absolute w-8 h-8 sm:w-12 sm:h-12 rounded-xl border border-zinc-700 bg-zinc-900/80 backdrop-blur-md z-10 flex items-center justify-center shadow-lg"
             style={{
               translateZ: (i % 2 === 0 ? 50 : 200),
-              transform: `rotate(${i * 60}deg) translateY(-220px) rotate(-${i * 60}deg)`
+              transform: `rotate(${i * 60}deg) translateY(-140px) rotate(-${i * 60}deg)`
             }}
           >
             <motion.div 
@@ -144,13 +146,13 @@ export function Hero() {
             
             {/* Connecting line */}
             <div 
-              className="absolute top-1/2 left-1/2 w-[220px] h-[1px] bg-gradient-to-r from-cortex-500/40 to-transparent -z-10"
+              className="absolute top-1/2 left-1/2 w-[140px] h-[1px] bg-gradient-to-r from-cortex-500/40 to-transparent -z-10"
               style={{ transform: `rotate(${i * 60 + 90}deg)`, transformOrigin: '0 0' }}
             ></div>
 
             {/* Telemetry packet travelling along line */}
             <motion.div
-               animate={{ x: [0, 220], opacity: [0, 1, 0] }}
+               animate={{ x: [0, 140], opacity: [0, 1, 0] }}
                transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.5, ease: "linear" }}
                className="absolute top-1/2 left-1/2 w-8 h-[2px] bg-gradient-to-r from-transparent via-white to-transparent -z-10"
                style={{ transformOrigin: '0 0', rotate: `${i * 60 + 90}deg` }}

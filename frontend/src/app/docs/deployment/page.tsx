@@ -1,5 +1,3 @@
-import { Terminal } from "lucide-react";
-
 export default function DeploymentGuidePage() {
   return (
     <>
