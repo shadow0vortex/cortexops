@@ -1,0 +1,33 @@
+name: Helm Validation
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'deploy/helm/**'
+      - '.github/workflows/helm.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'deploy/helm/**'
+      - '.github/workflows/helm.yml'
+
+jobs:
+  validate:
+    name: Validate Helm Charts
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: v3.14.0
+
+    - name: Helm Lint
+      run: helm lint deploy/helm/cortexops
+
+    - name: Helm Template (Dry Run)
+      run: helm template cortexops deploy/helm/cortexops > /dev/null

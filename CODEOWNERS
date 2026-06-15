@@ -1,0 +1,19 @@
+# CortexOps CODEOWNERS
+
+# Global default
+*       @shadow0vortex
+
+# Frontend
+/frontend/          @shadow0vortex
+
+# Backend
+/api/               @shadow0vortex
+/cmd/               @shadow0vortex
+/internal/          @shadow0vortex
+/pkg/               @shadow0vortex
+
+# DevOps & Infrastructure
+/deploy/            @shadow0vortex
+/.github/           @shadow0vortex
+/Makefile           @shadow0vortex
+/Dockerfile         @shadow0vortex
