@@ -24,7 +24,7 @@ coverage.out
 
 # Diagnostics
 *.pprof
-diagnostics/
+/diagnostics/
 tmp/
 
 # Kubernetes
