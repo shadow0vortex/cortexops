@@ -6,6 +6,11 @@
   [![Go Report Card](https://goreportcard.com/badge/github.com/shadow0vortex/cortexops)](https://goreportcard.com/report/github.com/shadow0vortex/cortexops)
   [![Kubernetes](https://img.shields.io/badge/Kubernetes-Native-326ce5.svg?logo=kubernetes)](https://kubernetes.io/)
   [![Temporal](https://img.shields.io/badge/Orchestration-Temporal-black.svg)](https://temporal.io/)
+  
+  [![Backend CI](https://github.com/shadow0vortex/cortexops/actions/workflows/backend.yml/badge.svg)](https://github.com/shadow0vortex/cortexops/actions/workflows/backend.yml)
+  [![Frontend CI](https://github.com/shadow0vortex/cortexops/actions/workflows/frontend.yml/badge.svg)](https://github.com/shadow0vortex/cortexops/actions/workflows/frontend.yml)
+  [![Docker Build](https://github.com/shadow0vortex/cortexops/actions/workflows/docker.yml/badge.svg)](https://github.com/shadow0vortex/cortexops/actions/workflows/docker.yml)
+  [![Security Scans](https://github.com/shadow0vortex/cortexops/actions/workflows/security.yml/badge.svg)](https://github.com/shadow0vortex/cortexops/actions/workflows/security.yml)
 </div>
 
 <br/>
