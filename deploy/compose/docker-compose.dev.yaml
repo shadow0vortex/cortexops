@@ -14,7 +14,7 @@ services:
       start_period: 10s
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     profiles: ["infra", "cortexops", "full"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-cortex}
@@ -100,6 +100,47 @@ services:
       - grafanadata:/var/lib/grafana
       - ./../grafana/provisioning:/etc/grafana/provisioning:ro
       - ./../grafana/dashboards:/etc/grafana/dashboards:ro
+
+  loki:
+    image: grafana/loki:2.9.2
+    profiles: ["observability", "full"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./../loki:/etc/loki:ro
+      - lokidata:/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    profiles: ["observability", "full"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./../promtail:/etc/promtail:ro
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    depends_on:
+      - loki
+
+  backup-cron:
+    image: postgres:17-alpine
+    profiles: ["infra", "cortexops", "full"]
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-cortex}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cortexpassword}
+      - POSTGRES_DB=${POSTGRES_DB:-cortexops}
+      - POSTGRES_HOST=postgres
+      - QDRANT_URL=http://qdrant:6333
+    volumes:
+      - ./../scripts:/scripts:ro
+      - backupdata:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "apk add --no-cache curl && while true; do sh /scripts/backup.sh; sleep 3600; done"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # ---------------------------------------------------------
   # CortexOps Runtime Services
@@ -241,6 +282,8 @@ volumes:
   qdrantdata:
   promdata:
   grafanadata:
+  lokidata:
+  backupdata:
   gomodcache:
   gocache:
   golangcilintcache:

@@ -10,6 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shadow0vortex/cortexops/internal/diagnostics"
 	"github.com/shadow0vortex/cortexops/internal/topology/discovery"
@@ -59,9 +62,25 @@ func main() {
 	graphStore := graph.NewMemoryGraphStore()
 
 	// Initialize Persister
-	pgURL := os.Getenv("POSTGRES_URL")
-	if pgURL != "" {
-		persister, err := graph.NewGraphPersister(pgURL, graphStore, log)
+	dbURL := os.Getenv("POSTGRES_URL")
+	if dbURL != "" {
+		// Run Migrations
+		log.Info("Running database migrations")
+		m, err := migrate.New(
+			"file:///workspace/deploy/migrations",
+			dbURL,
+		)
+		if err != nil {
+			log.Error("Failed to initialize migrations", "error", err)
+			os.Exit(1)
+		}
+		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+			log.Error("Failed to apply migrations", "error", err)
+			os.Exit(1)
+		}
+		log.Info("Database migrations applied successfully")
+
+		persister, err := graph.NewGraphPersister(dbURL, graphStore, log)
 		if err != nil {
 			log.Warn("Failed to initialize graph persister", "error", err)
 		} else {

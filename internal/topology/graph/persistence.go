@@ -9,7 +9,7 @@ import (
 	"log/slog"
 	"time"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	topologyv1 "github.com/shadow0vortex/cortexops/api/v1"
 )
 
@@ -25,23 +25,9 @@ type GraphPersister struct {
 }
 
 func NewGraphPersister(dbURL string, store *MemoryGraphStore, logger *slog.Logger) (*GraphPersister, error) {
-	db, err := sql.Open("postgres", dbURL)
+	db, err := sql.Open("pgx", dbURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open postgres: %w", err)
-	}
-
-	// Ensure table exists
-	_, err = db.Exec(`
-	CREATE TABLE IF NOT EXISTS topology_snapshots (
-		id SERIAL PRIMARY KEY,
-		version INT NOT NULL,
-		checksum VARCHAR(64) NOT NULL,
-		data JSONB NOT NULL,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create snapshot table: %w", err)
+		return nil, fmt.Errorf("failed to open pgx: %w", err)
 	}
 
 	return &GraphPersister{
