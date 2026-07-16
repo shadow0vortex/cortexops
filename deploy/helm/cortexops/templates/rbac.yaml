@@ -1,13 +1,30 @@
+{{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
+{{- $k8sServices := list "collector" "remediation" -}}
+
+# =============================================================================
+# Per-Service ServiceAccounts (TD-040)
+# Only collector and remediation get RBAC bindings for K8s API access.
+# =============================================================================
+{{- range $service := $services }}
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ .Release.Name }}-sa
----
+  name: {{ $.Release.Name }}-{{ $service }}-sa
+  labels:
+    app: cortexops
+    service: {{ $service }}
+{{- end }}
+
+# =============================================================================
+# RBAC — Only for services that need Kubernetes API access
+# =============================================================================
 {{- if .Values.clusterWideAccess }}
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Release.Name }}-role
+  name: {{ .Release.Name }}-k8s-role
 rules:
 # Observe Phase: Watch events, pods, deployments without mutation
 - apiGroups: [""]
@@ -26,24 +43,27 @@ rules:
 - apiGroups: ["apps"]
   resources: ["deployments"]
   verbs: ["patch"]
+{{- range $service := $k8sServices }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Release.Name }}-binding
+  name: {{ $.Release.Name }}-{{ $service }}-binding
 subjects:
 - kind: ServiceAccount
-  name: {{ .Release.Name }}-sa
-  namespace: {{ .Release.Namespace }}
+  name: {{ $.Release.Name }}-{{ $service }}-sa
+  namespace: {{ $.Release.Namespace }}
 roleRef:
   kind: ClusterRole
-  name: {{ .Release.Name }}-role
+  name: {{ $.Release.Name }}-k8s-role
   apiGroup: rbac.authorization.k8s.io
+{{- end }}
 {{- else }}
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ .Release.Name }}-role
+  name: {{ .Release.Name }}-k8s-role
 rules:
 # Observe Phase: Watch events, pods, deployments without mutation
 - apiGroups: [""]
@@ -62,17 +82,19 @@ rules:
 - apiGroups: ["apps"]
   resources: ["deployments"]
   verbs: ["patch"]
+{{- range $service := $k8sServices }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ .Release.Name }}-binding
+  name: {{ $.Release.Name }}-{{ $service }}-binding
 subjects:
 - kind: ServiceAccount
-  name: {{ .Release.Name }}-sa
-  namespace: {{ .Release.Namespace }}
+  name: {{ $.Release.Name }}-{{ $service }}-sa
+  namespace: {{ $.Release.Namespace }}
 roleRef:
   kind: Role
-  name: {{ .Release.Name }}-role
+  name: {{ $.Release.Name }}-k8s-role
   apiGroup: rbac.authorization.k8s.io
+{{- end }}
 {{- end }}

@@ -21,7 +21,7 @@ spec:
         app: cortexops
         service: {{ $service }}
     spec:
-      serviceAccountName: {{ $.Values.serviceAccount.name }}
+      serviceAccountName: {{ $.Release.Name }}-{{ $service }}-sa
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -52,9 +52,14 @@ spec:
               value: {{ $.Values.qdrant.url | quote }}
             - name: TOPOLOGY_URL
               value: "http://{{ $.Release.Name }}-topology:9091"
+            - name: DIAG_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-diag-token
+                  key: token
+                  optional: true
           resources:
             {{- toYaml $svcValues.resources | nindent 12 }}
-          {{- if eq $service "topology" }}
           ports:
             - containerPort: 9091
               name: diag
@@ -62,7 +67,18 @@ spec:
             httpGet:
               path: /debug/healthz
               port: 9091
-          {{- end }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /debug/healthz
+              port: 9091
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
       volumes:
         - name: tmp
           emptyDir: {}

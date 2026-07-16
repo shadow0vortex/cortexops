@@ -83,8 +83,9 @@ remediation:
     limits: { cpu: 500m, memory: 512Mi }
 
 serviceAccount:
+  # Per-service ServiceAccounts are created automatically (TD-040).
+  # Only collector and remediation receive RBAC bindings.
   create: true
-  name: "cortexops-sa"
 
 nats:
   url: "nats://nats:4222"

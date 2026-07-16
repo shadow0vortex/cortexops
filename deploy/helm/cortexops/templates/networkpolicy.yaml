@@ -1,0 +1,72 @@
+{{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
+{{- range $service := $services }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $.Release.Name }}-{{ $service }}-netpol
+  labels:
+    app: cortexops
+    service: {{ $service }}
+spec:
+  podSelector:
+    matchLabels:
+      app: cortexops
+      service: {{ $service }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow Prometheus scraping and inter-service health checks on port 9091
+    - from:
+        - podSelector:
+            matchLabels:
+              app: cortexops
+      ports:
+        - protocol: TCP
+          port: 9091
+    # Allow Prometheus scraping from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9091
+  egress:
+    # DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # NATS
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 4222
+    # PostgreSQL
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Temporal
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 7233
+    # Qdrant
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 6333
+    # Inter-service communication (topology API)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: cortexops
+      ports:
+        - protocol: TCP
+          port: 9091
+{{- end }}
