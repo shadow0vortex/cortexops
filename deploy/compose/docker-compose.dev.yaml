@@ -85,6 +85,8 @@ services:
       - "9090:9090"
     volumes:
       - promdata:/prometheus
+      - ./../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./../prometheus/rules.yml:/prometheus/rules.yml:ro
 
   grafana:
     image: grafana/grafana:10.4.0
@@ -96,6 +98,8 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     volumes:
       - grafanadata:/var/lib/grafana
+      - ./../grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./../grafana/dashboards:/etc/grafana/dashboards:ro
 
   # ---------------------------------------------------------
   # CortexOps Runtime Services

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shadow0vortex/cortexops/internal/diagnostics"
 	"github.com/shadow0vortex/cortexops/internal/topology/discovery"
 	"github.com/shadow0vortex/cortexops/internal/topology/graph"
@@ -99,10 +100,10 @@ func main() {
 		}
 	}()
 
-	// Initialize and Start Diagnostics API
 	diagAPI := diagnostics.NewAPI(graphStore)
 	mux := http.NewServeMux()
 	diagAPI.RegisterRoutes(mux)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	port := os.Getenv("DIAG_PORT")
 	if port == "" {

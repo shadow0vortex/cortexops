@@ -11,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shadow0vortex/cortexops/internal/collector/k8s"
 	"github.com/shadow0vortex/cortexops/pkg/broker"
 	"github.com/shadow0vortex/cortexops/pkg/logger"
@@ -48,6 +49,7 @@ func main() {
 			"service":       "collector",
 		})
 	})
+	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		log.Info("Starting diagnostics server on :9091")
 		if err := http.ListenAndServe(":9091", nil); err != nil {

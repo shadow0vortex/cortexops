@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: 'CortexOps Dashboards'
+    orgId: 1
+    folder: 'CortexOps'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      # This points to the directory inside the grafana container where
+      # dashboards are mounted.
+      path: /etc/grafana/dashboards

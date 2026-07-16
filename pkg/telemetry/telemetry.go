@@ -2,12 +2,20 @@ package telemetry
 
 import (
 	"context"
+	"os"
+	"sync"
+	"time"
 
-	"github.com/shadow0vortex/cortexops/pkg/core"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/shadow0vortex/cortexops/pkg/core"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -17,8 +25,34 @@ type OTelProvider struct {
 }
 
 // NewOTelProvider creates a new trace provider for a specific service.
-// In a full implementation, this would configure the OTLP exporter.
+// It wires up the OTLP exporter if OTLP_ENDPOINT is set.
 func NewOTelProvider(serviceName string) *OTelProvider {
+	endpoint := os.Getenv("OTLP_ENDPOINT")
+	if endpoint != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		exp, err := otlptracegrpc.New(ctx,
+			otlptracegrpc.WithEndpoint(endpoint),
+			otlptracegrpc.WithInsecure(), // Adjust for production TLS
+		)
+		if err == nil {
+			res, _ := resource.Merge(
+				resource.Default(),
+				resource.NewWithAttributes(
+					semconv.SchemaURL,
+					semconv.ServiceName(serviceName),
+				),
+			)
+			tp := sdktrace.NewTracerProvider(
+				sdktrace.WithBatcher(exp),
+				sdktrace.WithResource(res),
+			)
+			otel.SetTracerProvider(tp)
+			otel.SetTextMapPropagator(propagation.TraceContext{})
+		}
+	}
+
 	return &OTelProvider{
 		tracer: otel.Tracer(serviceName),
 	}
@@ -62,16 +96,13 @@ func (s *otelSpan) SetAttributes(attributes map[string]string) {
 
 // PrometheusMetrics implements the core.MetricsRecorder interface.
 type PrometheusMetrics struct {
+	mu         sync.RWMutex
 	counters   map[string]prometheus.Counter
 	histograms map[string]prometheus.Histogram
 	gauges     map[string]prometheus.Gauge
-	// In production, sync.Map or mutexes should protect these maps if dynamic metric creation is needed,
-	// but static registration via NewPrometheusMetrics is preferred.
 }
 
 // NewPrometheusMetrics creates a generic metrics recorder.
-// Note: It's usually better to pre-register specific metrics. This naive dynamic map
-// is simplified for scaffolding. A strict implementation would inject concrete structs.
 func NewPrometheusMetrics() *PrometheusMetrics {
 	return &PrometheusMetrics{
 		counters:   make(map[string]prometheus.Counter),
@@ -82,25 +113,43 @@ func NewPrometheusMetrics() *PrometheusMetrics {
 
 // RegisterCounter registers a counter to avoid race conditions during map access.
 func (p *PrometheusMetrics) RegisterCounter(name, help string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.counters[name] = promauto.NewCounter(prometheus.CounterOpts{
 		Name: name,
 		Help: help,
 	})
 }
 
+// RegisterGauge registers a gauge.
+func (p *PrometheusMetrics) RegisterGauge(name, help string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.gauges[name] = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: name,
+		Help: help,
+	})
+}
+
 func (p *PrometheusMetrics) IncCounter(ctx context.Context, name string, labels map[string]string) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	if c, ok := p.counters[name]; ok {
 		c.Inc()
 	}
 }
 
 func (p *PrometheusMetrics) ObserveHistogram(ctx context.Context, name string, value float64, labels map[string]string) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	if h, ok := p.histograms[name]; ok {
 		h.Observe(value)
 	}
 }
 
 func (p *PrometheusMetrics) SetGauge(ctx context.Context, name string, value float64, labels map[string]string) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	if g, ok := p.gauges[name]; ok {
 		g.Set(value)
 	}

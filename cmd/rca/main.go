@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shadow0vortex/cortexops/internal/rca/llm"
 	"github.com/shadow0vortex/cortexops/internal/rca/memory"
 	"github.com/shadow0vortex/cortexops/internal/rca/rag"
@@ -22,6 +25,22 @@ func main() {
 	slog.SetDefault(log)
 
 	log.Info("Starting CortexOps RCA Service")
+
+	// Setup Diagnostics Server
+	http.HandleFunc("/debug/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":  "ok",
+			"service": "rca",
+		})
+	})
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		log.Info("Starting diagnostics server on :9091")
+		if err := http.ListenAndServe(":9091", nil); err != nil {
+			log.Error("Diagnostics server failed", "error", err)
+		}
+	}()
 
 	// Initialize Broker
 	natsURL := os.Getenv("NATS_URL")

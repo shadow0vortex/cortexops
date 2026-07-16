@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "/prometheus/rules.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "cortexops_services"
+    # TD-004: Scrape all CortexOps services on port 9091
+    static_configs:
+      - targets:
+          - "collector:9091"
+          - "topology:9091"
+          - "correlator:9091"
+          - "rca:9091"
+          - "remediation:9091"
