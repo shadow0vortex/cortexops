@@ -24,11 +24,11 @@ By ingesting raw infrastructure telemetry, building deterministic causal chains,
 ## ✨ Platform Highlights
 
 - 📡 **Telemetry Normalization**: Ingests disparate K8s events and metrics into strongly-typed Protobuf envelopes for standardized processing.
-- 🧠 **Topology Intelligence**: An in-memory Directed Graph backed by PostgreSQL, maintaining real-time cluster dependencies for sub-millisecond blast-radius traversal.
+- 🧠 **Topology Intelligence**: An in-memory Directed Graph backed by PostgreSQL (`pgx/v5`), maintaining real-time cluster dependencies for sub-millisecond blast-radius traversal.
 - ⚡ **Causal Correlation**: Deterministic heuristic scoring engine that groups symptoms into incidents using TraceIDs, time, and topology—immune to event flooding.
 - 🤖 **Advisory RAG RCA**: Context-grounded AI analysis via a live LLM integration and Qdrant Vector DB, fortified with strict degraded-mode heuristics for absolute safety.
 - 🏗️ **Durable Remediation**: Temporal-orchestrated workflows for zero-downtime recoveries (`POD_RESTART`, `ROLLOUT_RESTART`, `SCALING`), featuring deterministic verification and rollback capabilities.
-- 🛡️ **Zero-Trust Governance**: Every remediation action is rigorously validated against a fail-closed Open Policy Agent (OPA) engine prior to execution.
+- 🛡️ **Zero-Trust Governance**: Every remediation action is rigorously validated against a fail-closed Open Policy Agent (OPA) engine—including maintenance window enforcement—prior to execution.
 
 ---
 
@@ -63,39 +63,163 @@ graph LR
 
 ## 🚀 Quick Start
 
-Deploying the full CortexOps stack locally takes just a few commands.
+### Prerequisites
+- Docker & Docker Compose v2+
+- `~/.kube/config` pointing to a Kubernetes cluster (for `collector` and `remediation`)
 
 ### 1. Spin up the Infrastructure
-Deploy the required subsystems (NATS, Temporal, Qdrant, PostgreSQL, Grafana, and CortexOps core):
+Deploy the full stack (NATS, Temporal, Qdrant, PostgreSQL, Grafana, Loki, and all CortexOps services):
 ```bash
 make dev-up
 ```
 
 ### 2. Verify System Health
-Ensure all components are communicating securely:
+Ensure all components are communicating:
 ```bash
 make verify-runtime
 ```
 
 ### 3. Access the Dashboards
-- **Documentation Portal** (Next.js): `cd frontend && npm run dev` → `http://localhost:3000`
-- **Temporal UI** (Workflow Lifecycle): `http://localhost:8233`
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| **Documentation Portal** (Next.js) | `http://localhost:3000` | — |
+| **Grafana** (Metrics & Logs) | `http://localhost:3000` | Anonymous admin |
+| **Temporal UI** (Workflows) | `http://localhost:8233` | `admin / password` |
+| **Prometheus** (Raw Metrics) | `http://localhost:9090` | — |
+| **NATS Monitoring** | `http://localhost:8222` | — |
+
+### 4. Run Chaos Tests
+```bash
+# Duplicate event storm (tests deduplication)
+go run ./cmd/chaos -- --test duplicate-storm --count 1000
+
+# Workflow idempotency test
+go run ./cmd/chaos -- --test workflow-idempotency
+```
 
 ---
 
-## 🛡️ Operational Guarantees
+## 🏗️ Project Structure
 
-We believe autonomous operations must be fundamentally safe.
+```
+cortexops/
+├── api/v1/                     # Protobuf service definitions
+├── build/docker/               # Multi-stage Dockerfiles (non-root runtime)
+├── cmd/                        # Service entrypoints
+│   ├── collector/              # K8s event ingestion
+│   ├── correlator/             # Incident correlation engine
+│   ├── topology/               # Dependency graph service
+│   ├── rca/                    # Root Cause Analysis (LLM + heuristic)
+│   ├── remediation/            # Temporal workflow executor
+│   ├── chaos/                  # Chaos testing CLI
+│   └── demo/                   # Demo event generator
+├── deploy/
+│   ├── argocd/                 # GitOps Application manifest
+│   ├── compose/                # Docker Compose (dev environment)
+│   ├── grafana/                # Pre-provisioned dashboards & datasources
+│   ├── helm/cortexops/         # Production Helm chart
+│   ├── loki/                   # Log aggregation configuration
+│   ├── nats/                   # NATS NKey production config
+│   ├── prometheus/             # Metrics scraping & alerting rules
+│   ├── promtail/               # Container log collection
+│   └── scripts/                # Backup automation
+├── frontend/                   # Next.js documentation portal
+├── internal/                   # Private application logic
+│   ├── diagnostics/            # Versioned REST API (Bearer auth)
+│   ├── orchestration/temporal/ # Durable workflow definitions
+│   ├── remediation/            # Policy engine, approval, K8s executor
+│   ├── rca/                    # LLM integration & vector search
+│   └── topology/graph/         # Graph store (in-memory + PostgreSQL)
+├── migrations/                 # Versioned SQL migrations (golang-migrate)
+├── pkg/                        # Shared libraries
+│   ├── broker/                 # NATS JetStream abstraction
+│   ├── logger/                 # Structured JSON logging (slog)
+│   ├── middleware/             # CORS middleware
+│   ├── telemetry/              # Prometheus + OpenTelemetry
+│   ├── topology/               # Topology HTTP client
+│   └── validation/             # Input validation
+└── test/e2e/                   # End-to-end & chaos tests
+```
 
+---
+
+## 🛡️ Security & Operational Guarantees
+
+### Security Posture
+- **Non-root containers**: All services run as UID 10001 — no privilege escalation
+- **Authenticated APIs**: Diagnostics API protected by Bearer token (`DIAG_API_TOKEN`)
+- **NATS authentication**: User/password in dev; NKey with per-service pub/sub permissions in production
+- **Network segmentation**: Kubernetes `NetworkPolicy` per service (default-deny ingress)
+- **Least-privilege RBAC**: Per-service `ServiceAccount`s; only `collector` and `remediation` have K8s API bindings
+- **HTTP security headers**: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- **OPA governance**: Fail-closed policy gate with maintenance window enforcement
+
+### Operational Guarantees
 - **Determinism Over "Magic"**: The correlation engine is a strictly mathematical state machine. AI is confined to an advisory enrichment layer and **cannot** trigger infrastructure mutations directly.
 - **Replay Safety**: Built on NATS JetStream deduplication and event-timestamp windowing, replaying identical telemetry bursts will always yield the exact same causal results.
 - **Fail-Closed Governance**: Every remediation is dry-run against the Kubernetes API and gated by OPA. If an anomaly is detected, or if stabilization fails, the orchestrator automatically rolls back the mutation.
+- **Maintenance Windows**: OPA rules automatically block all automated remediation during scheduled maintenance periods.
+
+---
+
+## 📊 Observability Stack
+
+CortexOps ships with a fully integrated observability stack:
+
+| Component | Purpose | Config |
+|-----------|---------|--------|
+| **Prometheus** | Metrics collection from all 5 services | `deploy/prometheus/` |
+| **Grafana** | Pre-provisioned dashboards for operations | `deploy/grafana/` |
+| **Loki** | Centralized log aggregation | `deploy/loki/` |
+| **Promtail** | Container log scraping | `deploy/promtail/` |
+| **OpenTelemetry** | Distributed tracing (OTLP export) | `pkg/telemetry/` |
+| **Alerting Rules** | Service down, high error rate, latency SLOs | `deploy/prometheus/rules.yml` |
+
+---
+
+## 🚢 Deployment
+
+### Docker Compose (Development)
+```bash
+# Full stack (all services + observability + infra)
+docker compose -f deploy/compose/docker-compose.dev.yaml --profile full up -d
+
+# Infrastructure only (NATS, Postgres, Temporal, Qdrant)
+docker compose -f deploy/compose/docker-compose.dev.yaml --profile infra up -d
+```
+
+### Helm (Production Kubernetes)
+```bash
+# Lint the chart
+helm lint deploy/helm/cortexops
+
+# Install with required image tag
+helm install cortexops deploy/helm/cortexops \
+  --namespace cortexops --create-namespace \
+  --set image.tag=v1.0.0
+```
+
+### ArgoCD (GitOps)
+```bash
+kubectl apply -f deploy/argocd/application.yaml
+```
+
+The ArgoCD Application is configured with `selfHeal: true` and `prune: true` for fully automated GitOps deployment.
+
+---
+
+## 🔄 Backup & Recovery
+
+Automated backups run hourly via the `backup-cron` container:
+- **PostgreSQL**: Full `pg_dump` snapshots
+- **Qdrant**: Native vector DB snapshots via REST API
+- **Retention**: 7-day rolling window with automatic pruning
+- **Volume**: Persisted to `backupdata` Docker volume
 
 ---
 
 ## 📚 Documentation Matrix
-
-Explore our comprehensive documentation suite:
 
 ### Core Documentation
 | Document | Description |
