@@ -100,6 +100,18 @@ services:
       - grafanadata:/var/lib/grafana
       - ./../grafana/provisioning:/etc/grafana/provisioning:ro
       - ./../grafana/dashboards:/etc/grafana/dashboards:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.cortexops.local`)"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "homepage.group=Observability"
+      - "homepage.name=Grafana"
+      - "homepage.icon=grafana.png"
+      - "homepage.href=http://grafana.cortexops.local"
+      - "homepage.description=CortexOps Metrics"
+      - "uptime.kuma.monitor.type=http"
+      - "uptime.kuma.monitor.name=Grafana"
+      - "uptime.kuma.monitor.url=http://grafana:3000"
 
   loki:
     image: grafana/loki:2.9.2
@@ -167,6 +179,10 @@ services:
         limits:
           cpus: '0.5'
           memory: 512M
+    labels:
+      - "uptime.kuma.monitor.type=http"
+      - "uptime.kuma.monitor.name=Topology API"
+      - "uptime.kuma.monitor.url=http://topology:9091/debug/healthz"
 
   collector:
     build:
@@ -270,6 +286,20 @@ services:
       - "8233:8080"
     depends_on:
       - temporal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.temporal.rule=Host(`temporal.cortexops.local`)"
+      - "traefik.http.services.temporal.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.temporal-auth.basicauth.users=admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
+      - "traefik.http.routers.temporal.middlewares=temporal-auth"
+      - "homepage.group=Infrastructure"
+      - "homepage.name=Temporal"
+      - "homepage.icon=temporal.png"
+      - "homepage.href=http://temporal.cortexops.local"
+      - "homepage.description=Workflow Orchestrator"
+      - "uptime.kuma.monitor.type=http"
+      - "uptime.kuma.monitor.name=Temporal UI"
+      - "uptime.kuma.monitor.url=http://temporal-ui:8080"
 
 
   # ---------------------------------------------------------
