@@ -37,5 +37,11 @@ RUN apk add --no-cache ca-certificates wget
 # Copy the binary from the builder stage
 COPY --from=builder /go/bin/${SERVICE_NAME} /app/service
 
+# Create a non-root user for security
+RUN addgroup -S cortexops -g 10001 && adduser -S cortexops -G cortexops -u 10001
+
+# Switch to the non-root user
+USER 10001
+
 # Set the entrypoint
 ENTRYPOINT ["/app/service"]

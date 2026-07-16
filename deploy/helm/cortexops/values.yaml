@@ -16,9 +16,11 @@ securityContext:
     type: RuntimeDefault
 
 image:
-  repository: cortexops
+  repository: shadow0vortex/cortexops
   pullPolicy: IfNotPresent
-  tag: "latest"
+  # Overrides the image tag whose default is the chart appVersion.
+  # CI MUST inject this during deployment (e.g., --set image.tag=$GITHUB_SHA)
+  tag: ""
 
 collector:
   replicaCount: 2

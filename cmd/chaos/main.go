@@ -45,7 +45,11 @@ func main() {
 
 func runDuplicateStorm(stormSize int) {
 	fmt.Println("Running duplicate-storm chaos test...")
-	nc, err := nats.Connect(nats.DefaultURL)
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		natsURL = "nats://admin:cortexpassword@localhost:4222"
+	}
+	nc, err := nats.Connect(natsURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to NATS: %v", err)
 	}
@@ -109,7 +113,11 @@ func runDuplicateStorm(stormSize int) {
 
 func runWorkflowIdempotency() {
 	fmt.Println("Running workflow-idempotency chaos test...")
-	nc, err := nats.Connect(nats.DefaultURL)
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		natsURL = "nats://admin:cortexpassword@localhost:4222"
+	}
+	nc, err := nats.Connect(natsURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to NATS: %v", err)
 	}

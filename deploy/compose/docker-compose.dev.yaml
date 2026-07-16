@@ -2,7 +2,7 @@ services:
   nats:
     image: nats:2.10-alpine
     profiles: ["infra", "cortexops", "full"]
-    command: ["--js", "-m", "8222"]
+    command: ["--js", "-m", "8222", "--user", "admin", "--pass", "cortexpassword"]
     ports:
       - "4222:4222"
       - "8222:8222"
@@ -162,6 +162,11 @@ services:
       timeout: 5s
       retries: 3
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   collector:
     build:
@@ -171,14 +176,19 @@ services:
         SERVICE_NAME: collector
     profiles: ["cortexops", "full"]
     environment:
-      - NATS_URL=nats://nats:4222
+      - NATS_URL=nats://admin:cortexpassword@nats:4222
       - DOCKER_COMPOSE_ENV=true
     volumes:
-      - ${USERPROFILE}/.kube/config:/root/.kube/config:ro
+      - ~/.kube/config:/root/.kube/config:ro
     depends_on:
       nats:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   correlator:
     build:
@@ -188,7 +198,7 @@ services:
         SERVICE_NAME: correlator
     profiles: ["cortexops", "full"]
     environment:
-      - NATS_URL=nats://nats:4222
+      - NATS_URL=nats://admin:cortexpassword@nats:4222
       - TOPOLOGY_URL=http://topology:9091
     depends_on:
       nats:
@@ -196,6 +206,11 @@ services:
       topology:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   rca:
     build:
@@ -205,7 +220,7 @@ services:
         SERVICE_NAME: rca
     profiles: ["cortexops", "ai", "full"]
     environment:
-      - NATS_URL=nats://nats:4222
+      - NATS_URL=nats://admin:cortexpassword@nats:4222
       - QDRANT_URL=http://qdrant:6333
     depends_on:
       nats:
@@ -213,6 +228,11 @@ services:
       qdrant:
         condition: service_started
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   remediation:
     build:
@@ -224,16 +244,21 @@ services:
     environment:
       - TEMPORAL_URL=temporal:7233
       - TOPOLOGY_URL=http://topology:9091
-      - NATS_URL=nats://nats:4222
+      - NATS_URL=nats://admin:cortexpassword@nats:4222
       - DOCKER_COMPOSE_ENV=true
     volumes:
-      - ${USERPROFILE}/.kube/config:/root/.kube/config:ro
+      - ~/.kube/config:/root/.kube/config:ro
     depends_on:
       temporal:
         condition: service_started
       topology:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   temporal-ui:
     image: temporalio/ui:latest
@@ -287,3 +312,8 @@ volumes:
   gomodcache:
   gocache:
   golangcilintcache:
+
+networks:
+  default:
+    name: cortexops-dev
+    driver: bridge
