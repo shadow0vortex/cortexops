@@ -27,16 +27,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # TD-021: Go version is pinned to match go.mod (go 1.25.0).
+    # Previously this was '1.22' which caused a compiler/toolchain mismatch.
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version-file: 'go.mod'
         cache: true
 
     - name: Verify dependencies
       run: |
         go mod tidy
-        git diff --exit-code go.mod go.sum || (echo "Dependencies out of sync. Please run 'go mod tidy' and commit." && exit 1)
+        git diff --exit-code go.mod go.sum || (echo "ERROR: Dependencies out of sync. Run 'go mod tidy' and commit." && exit 1)
 
     - name: Run Go vet
       run: go vet ./...
@@ -44,14 +46,15 @@ jobs:
     - name: Lint Go code
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.55.2
+        version: v1.59.1
 
     - name: Build binaries
       run: |
         mkdir -p bin
         for service in collector correlator topology rca remediation; do
           if [ -d "./cmd/$service" ]; then
-            go build -o bin/$service ./cmd/$service
+            echo "Building $service..."
+            CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o bin/$service ./cmd/$service
           fi
         done
 

@@ -1,37 +1,74 @@
-.gemini/
-# Binaries
+# ============================================================
+# CortexOps .gitignore
+# ============================================================
+# Rule: Never commit build artifacts, secrets, or OS noise.
+# ============================================================
+
+# Binaries and compiled artifacts (TD-001)
+# Compiled Go binaries and platform-specific executables must
+# never be committed. Build from source using: make build
 bin/
 dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# Go
+# Helm rendered output (TD-029)
+# Rendered templates are generated artifacts, not source.
+# Regenerate with: helm template cortexops ./deploy/helm/cortexops
+rendered-template.yaml
+rendered-*.yaml
+
+# Go test and coverage artifacts
 *.test
 *.out
 coverage.out
+coverage.html
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
+Thumbs.db
 
-# Env
+# Environment and secrets (SECURITY)
+# Never commit credentials or environment overrides.
 .env
 .env.*
+*.secret
 
 # Logs
 *.log
 
-# Diagnostics
+# Diagnostics and profiling
 *.pprof
 /diagnostics/
 tmp/
 
-# Kubernetes
+# Kubernetes credentials
 kubeconfig
+*.kubeconfig
 
 # Terraform
 .terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
 
-# Gemini
+# Node.js / Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Gemini IDE
 .gemini/

@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [ "main" ]
   schedule:
+    # Run weekly on Sundays at midnight UTC for ongoing dependency monitoring.
     - cron: '0 0 * * 0'
 
 jobs:
@@ -22,54 +23,73 @@ jobs:
       with:
         fetch-depth: 0
 
+    # TD-021: Use go-version-file to read the version directly from go.mod.
+    # This eliminates any compiler mismatch between CI and the declared toolchain.
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version-file: 'go.mod'
         cache: true
 
+    # TD-005: Govulncheck runs and FAILS the pipeline if known vulnerabilities
+    # are found in direct or transitive dependencies.
+    # Previously this had '|| echo ...' which silenced failures — removed.
     - name: Run Govulncheck
       run: |
         go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck ./... || echo "Vulnerabilities found, continuing to prevent blocking on known issues."
+        govulncheck ./...
 
+    # TD-005: Gosec runs WITHOUT -no-fail so that SAST findings block the pipeline.
+    # SARIF output is still produced for GitHub Security tab upload.
+    # Previously ran with '-no-fail' which rendered the scan decorative — removed.
     - name: Run Gosec
-      uses: securego/gosec@master
+      uses: securego/gosec@v2.21.4
       with:
-        args: '-no-fail -fmt sarif -out gosec.sarif ./...'
+        args: '-fmt sarif -out gosec.sarif ./...'
 
+    # Trivy filesystem vulnerability scan.
+    # TD-005: continue-on-error removed. CRITICAL and HIGH findings now block.
     - name: Run Trivy vulnerability scanner (Filesystem)
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.28.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
         severity: 'CRITICAL,HIGH'
-      continue-on-error: true
+        exit-code: '1'
 
+    # Gitleaks: secret scanning. Fails if secrets are found in the commit history.
+    # TD-005: continue-on-error removed. Secret detection now blocks the pipeline.
     - name: Run Gitleaks
       uses: gitleaks/gitleaks-action@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      continue-on-error: true
 
+    # Upload security artifacts for review. These are kept even on failure so
+    # engineers can inspect the full report in the Actions artifacts tab.
     - name: Upload Security Artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
           gosec.sarif
           trivy-results.sarif
-        retention-days: 7
+        retention-days: 30
 
-    - name: Upload SARIF to GitHub Security (if supported)
+    # Upload SARIF results to GitHub Security tab for inline code annotations.
+    # continue-on-error is acceptable here because SARIF upload is informational —
+    # the actual security gate has already been enforced by the steps above.
+    - name: Upload Gosec SARIF to GitHub Security
+      if: always()
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: gosec.sarif
       continue-on-error: true
 
-    - name: Upload Trivy SARIF to GitHub Security (if supported)
+    - name: Upload Trivy SARIF to GitHub Security
+      if: always()
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: trivy-results.sarif

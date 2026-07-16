@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,8 +24,13 @@ import (
 func main() {
 	flag.Parse()
 
-	log := logger.New(logger.Config{Level: "info"})
-	slog.SetDefault(log)
+	log := logger.New(logger.Config{
+		Level:  os.Getenv("LOG_LEVEL"),
+		Format: os.Getenv("LOG_FORMAT"),
+	})
+	// Note: slog.SetDefault is intentionally NOT called here.
+	// All logging uses the injected logger to maintain the design
+	// established in pkg/logger/logger.go (no global state mutation).
 
 	log.Info("Starting CortexOps Collector")
 
@@ -64,7 +68,21 @@ func main() {
 		if err != nil {
 			log.Error("Failed to load kubeconfig", "error", err)
 		} else if os.Getenv("DOCKER_COMPOSE_ENV") == "true" {
-			log.Info("DOCKER_COMPOSE_ENV=true detected, rewriting loopback to host.docker.internal")
+			// TD-007: Production guard — the TLS bypass path must never execute
+			// in a production environment. If both DOCKER_COMPOSE_ENV=true and
+			// ENVIRONMENT=production are set simultaneously, this is a
+			// misconfiguration that must be caught immediately at startup,
+			// not silently accepted.
+			if os.Getenv("ENVIRONMENT") == "production" {
+				log.Error(
+					"FATAL: DOCKER_COMPOSE_ENV=true is set in a production environment. "+
+						"This would disable TLS verification for the Kubernetes API server. "+
+						"This is a critical security misconfiguration. "+
+						"Remove DOCKER_COMPOSE_ENV or ENVIRONMENT from the container configuration.",
+			)
+			os.Exit(1)
+			}
+			log.Warn("DOCKER_COMPOSE_ENV=true: rewriting loopback addresses to host.docker.internal. TLS verification disabled for local kubeconfig access. This mode is DEVELOPMENT ONLY.")
 			config.Host = strings.ReplaceAll(config.Host, "127.0.0.1", "host.docker.internal")
 			config.Host = strings.ReplaceAll(config.Host, "localhost", "host.docker.internal")
 			config.Insecure = true

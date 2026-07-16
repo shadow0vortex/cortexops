@@ -3,16 +3,38 @@ name: Docker Validation
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'build/docker/**'
+      - 'frontend/Dockerfile'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'frontend/src/**'
+      - 'frontend/package*.json'
+      - 'frontend/next.config.ts'
+      - '.github/workflows/docker.yml'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'build/docker/**'
+      - 'frontend/Dockerfile'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'frontend/src/**'
+      - 'frontend/package*.json'
+      - 'frontend/next.config.ts'
+      - '.github/workflows/docker.yml'
 
 jobs:
-  build:
-    name: Build Docker Images
+  build-backend:
+    name: Build Backend Service — ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
+      # Build all services even if one fails, to surface all errors at once.
+      fail-fast: false
       matrix:
-        service: [collector, correlator, topology, rca, remediation, frontend]
+        service: [collector, correlator, topology, rca, remediation]
 
     steps:
     - name: Checkout code
@@ -25,17 +47,21 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ matrix.service }}-${{ github.sha }}
+        key: ${{ runner.os }}-buildx-backend-${{ matrix.service }}-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-buildx-${{ matrix.service }}-
+          ${{ runner.os }}-buildx-backend-${{ matrix.service }}-
 
-    - name: Build image
+    # All backend services share a single Dockerfile.base with SERVICE_NAME as a build arg.
+    # This is the correct path — build/docker/Dockerfile.base (not deploy/docker/).
+    - name: Build backend image (${{ matrix.service }})
       uses: docker/build-push-action@v5
       with:
-        context: ${{ matrix.service == 'frontend' && 'frontend' || '.' }}
-        file: ${{ matrix.service == 'frontend' && 'frontend/Dockerfile' || format('deploy/docker/{0}.Dockerfile', matrix.service) }}
+        context: .
+        file: build/docker/Dockerfile.base
         push: false
-        tags: shadow0vortex/cortexops-${{ matrix.service }}:test
+        build-args: |
+          SERVICE_NAME=${{ matrix.service }}
+        tags: cortexops/${{ matrix.service }}:ci-${{ github.sha }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -43,3 +69,39 @@ jobs:
       run: |
         rm -rf /tmp/.buildx-cache
         mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true
+
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Cache Docker layers
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache-frontend
+        key: ${{ runner.os }}-buildx-frontend-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-frontend-
+
+    # Frontend has its own Dockerfile at frontend/Dockerfile (TD-002).
+    # Context is the frontend directory only.
+    - name: Build frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: frontend
+        file: frontend/Dockerfile
+        push: false
+        tags: cortexops/frontend:ci-${{ github.sha }}
+        cache-from: type=local,src=/tmp/.buildx-cache-frontend
+        cache-to: type=local,dest=/tmp/.buildx-cache-frontend-new,mode=max
+
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache-frontend
+        mv /tmp/.buildx-cache-frontend-new /tmp/.buildx-cache-frontend || true
