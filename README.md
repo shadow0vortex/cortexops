@@ -241,6 +241,67 @@ Automated backups run hourly via the `backup-cron` container:
 
 ---
 
+## 📦 Releases
+
+### `v1.0.0-production` — Helm & Kubernetes Hardening
+- Readiness and liveness probes (`/debug/healthz`) on all 5 services
+- Per-service `NetworkPolicy` resources (default-deny ingress, explicit egress)
+- Per-service `ServiceAccount`s with least-privilege RBAC (only `collector` and `remediation` get K8s API bindings)
+- Bearer token authentication on the diagnostics REST API (`DIAG_API_TOKEN`)
+- API version prefix: `/v1/topology/nodes`, `/v1/topology/blast-radius/{id}`
+- OPA maintenance window deny rule (`input.maintenance_window == true`)
+- ArgoCD `Application` manifest with automated sync, self-heal, and prune
+- NATS NKey authorization config with per-service publish/subscribe permissions
+- Per-service PostgreSQL schemas via versioned migration (`000002_per_service_schemas`)
+
+### `v0.6.0-platform` — Platform Integration
+- Traefik Docker labels and routing rules for `grafana` and `temporal-ui`
+- BasicAuth middleware on Temporal UI via Traefik
+- Uptime Kuma auto-discovery labels on `topology`, `grafana`, `temporal-ui`
+- Homepage dashboard labels with service grouping, icons, and descriptions
+- HTTP security headers (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy) in `next.config.ts`
+
+### `v0.5.0-hardened` — Infrastructure Hardening
+- Non-root container user (`cortexops`, UID 10001) in `Dockerfile.base`
+- Named `cortexops-dev` bridge network for Docker Compose isolation
+- Resource limits (`cpus: 0.5`, `memory: 512M`) on all microservice containers
+- NATS user/password authentication across all services and CLI tools
+- Cross-platform kubeconfig mount (`~/.kube/config` replacing `${USERPROFILE}`)
+- Removed mutable `latest` image tag from Helm `values.yaml`; CI must inject semver
+
+### `v0.4.0-data` — Data Layer
+- Database migration framework (`golang-migrate/migrate/v4`) replacing inline DDL
+- PostgreSQL upgrade from `15-alpine` to `17-alpine`
+- Database driver migration from `lib/pq` to `jackc/pgx/v5` with native connection pooling
+- Automated `pg_dump` + Qdrant snapshot backups via `backup-cron` container (1h interval, 7-day retention)
+- Loki + Promtail log aggregation stack integrated into Docker Compose
+
+### `v0.3.0-observability` — Observability
+- `/metrics` Prometheus endpoint on all 5 services
+- OpenTelemetry OTLP trace exporter wired into each service
+- `PrometheusMetrics` race condition fix (`sync.Mutex`)
+- Grafana auto-provisioning (Prometheus + Loki datasources, CortexOps dashboard)
+- Prometheus alerting rules (service down, high error rate, latency thresholds)
+- `/debug/healthz` health endpoints on `correlator`, `rca`, `remediation`
+
+### `v0.2.0-foundation` — Security & Build Foundation
+- Removed leaked binaries (`chaos.exe`) and rendered secrets (`rendered-template.yaml`)
+- Multi-stage `frontend/Dockerfile` for Next.js standalone deployment
+- Go version alignment between CI workflows and `go.mod`
+- Security CI gates enforced (removed `continue-on-error: true`)
+- `.gitignore` hardened against binary and secret re-commits
+
+### `v0.1.0-mvp` — Initial Release
+- Core event-driven pipeline: Collector → Correlator → RCA → Remediation
+- NATS JetStream message bus with Protobuf serialization
+- Temporal-orchestrated remediation workflows
+- OPA policy engine for fail-closed governance
+- In-memory topology graph with PostgreSQL persistence
+- Qdrant vector DB integration for RAG-based root cause analysis
+- Next.js documentation portal
+
+---
+
 ## 🤝 Contributing & Security
 
 We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTING.md) and adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
