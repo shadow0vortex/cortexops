@@ -54,7 +54,7 @@ jobs:
     # All backend services share a single Dockerfile.base with SERVICE_NAME as a build arg.
     # This is the correct path — build/docker/Dockerfile.base (not deploy/docker/).
     - name: Build backend image (${{ matrix.service }})
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: build/docker/Dockerfile.base
@@ -92,7 +92,7 @@ jobs:
     # Frontend has its own Dockerfile at frontend/Dockerfile (TD-002).
     # Context is the frontend directory only.
     - name: Build frontend image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: frontend
         file: frontend/Dockerfile

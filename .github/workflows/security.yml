@@ -50,7 +50,7 @@ jobs:
     # Trivy filesystem vulnerability scan.
     # TD-005: continue-on-error removed. CRITICAL and HIGH findings now block.
     - name: Run Trivy vulnerability scanner (Filesystem)
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@0.33.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
