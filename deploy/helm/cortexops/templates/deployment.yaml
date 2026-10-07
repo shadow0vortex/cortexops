@@ -1,5 +1,7 @@
 {{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
 {{- range $service := $services }}
+{{- $svcValues := index $.Values $service }}
+{{- $imageTag := default $.Chart.AppVersion $.Values.image.tag }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -9,7 +11,6 @@ metadata:
     app: cortexops
     service: {{ $service }}
 spec:
-  {{- $svcValues := index $.Values $service }}
   replicas: {{ $svcValues.replicaCount | default $.Values.replicaCount }}
   selector:
     matchLabels:
@@ -34,7 +35,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: {{ $service }}
-          image: "{{ $.Values.image.repository }}/{{ $service }}:{{ $.Values.image.tag }}"
+          image: "{{ $.Values.image.repository }}-{{ $service }}:{{ $imageTag }}"
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           {{- if $.Values.securityContext }}
           securityContext:
@@ -45,24 +46,33 @@ spec:
               mountPath: /tmp
           env:
             - name: NATS_URL
-              value: {{ $.Values.nats.url | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.nats.existingSecret | quote }}
+                  key: {{ $.Values.nats.urlKey | quote }}
             - name: TEMPORAL_URL
               value: {{ $.Values.temporal.host | quote }}
             - name: QDRANT_URL
               value: {{ $.Values.qdrant.url | quote }}
             - name: TOPOLOGY_URL
               value: "http://{{ $.Release.Name }}-topology:9091"
+            {{- if eq $service "topology" }}
             - name: DIAG_API_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ $.Release.Name }}-diag-token
-                  key: token
-                  optional: true
+                  name: {{ $.Values.diagnostics.existingSecret | quote }}
+                  key: {{ $.Values.diagnostics.tokenKey | quote }}
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.postgres.existingSecret | quote }}
+                  key: {{ $.Values.postgres.urlKey | quote }}
+            {{- end }}
           resources:
             {{- toYaml $svcValues.resources | nindent 12 }}
           ports:
             - containerPort: 9091
-              name: diag
+              name: http
           livenessProbe:
             httpGet:
               path: /debug/healthz

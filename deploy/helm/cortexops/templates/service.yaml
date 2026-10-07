@@ -1,12 +1,19 @@
+{{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
+{{- range $service := $services }}
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Name }}-topology
+  name: {{ $.Release.Name }}-{{ $service }}
+  labels:
+    app: cortexops
+    service: {{ $service }}
 spec:
   selector:
     app: cortexops
-    service: topology
+    service: {{ $service }}
   ports:
     - port: 9091
       targetPort: 9091
-      name: diag
+      name: http
+{{- end }}

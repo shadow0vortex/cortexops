@@ -3,7 +3,7 @@ replicaCount: 2
 clusterWideAccess: false
 
 serviceMonitor:
-  enabled: true
+  enabled: false
 
 securityContext:
   runAsNonRoot: true
@@ -16,11 +16,33 @@ securityContext:
     type: RuntimeDefault
 
 image:
-  repository: shadow0vortex/cortexops
+  repository: docker.io/shadow0vortex/cortexops
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  # CI MUST inject this during deployment (e.g., --set image.tag=$GITHUB_SHA)
   tag: ""
+
+diagnostics:
+  existingSecret: cortexops-diag-token
+  tokenKey: token
+
+postgres:
+  existingSecret: cortexops-postgres
+  urlKey: url
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  path: /v1
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+    secretName: cortexops-api-tls
 
 collector:
   replicaCount: 2
@@ -88,10 +110,90 @@ serviceAccount:
   create: true
 
 nats:
-  url: "nats://nats:4222"
+  enabled: true
+  existingSecret: cortexops-nats-auth
+  urlKey: url
+  config:
+    jetstream:
+      enabled: true
+      fileStore:
+        enabled: true
+        pvc:
+          enabled: true
+          size: 20Gi
+    merge:
+      authorization:
+        user: $NATS_USER
+        password: $NATS_PASSWORD
+  container:
+    env:
+      NATS_USER:
+        valueFrom:
+          secretKeyRef:
+            name: cortexops-nats-auth
+            key: username
+      NATS_PASSWORD:
+        valueFrom:
+          secretKeyRef:
+            name: cortexops-nats-auth
+            key: password
 
-temporal:
-  host: "temporal:7233"
+postgresql:
+  enabled: true
+  architecture: standalone
+  auth:
+    username: cortex
+    database: cortexops
+    existingSecret: cortexops-postgres-auth
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+    initdb:
+      scripts:
+        01-temporal-databases.sql: |
+          CREATE DATABASE temporal OWNER cortex;
+          CREATE DATABASE temporal_visibility OWNER cortex;
 
 qdrant:
-  url: "http://qdrant:6333"
+  enabled: true
+  url: "http://cortexops-qdrant:6333"
+  replicaCount: 1
+  persistence:
+    size: 20Gi
+
+temporal:
+  enabled: true
+  host: "cortexops-temporal-frontend:7233"
+  server:
+    config:
+      persistence:
+        defaultStore: default
+        visibilityStore: visibility
+        numHistoryShards: 512
+        datastores:
+          default:
+            sql:
+              createDatabase: false
+              manageSchema: true
+              pluginName: postgres12
+              driverName: postgres12
+              databaseName: temporal
+              connectAddr: cortexops-postgresql:5432
+              connectProtocol: tcp
+              user: cortex
+              existingSecret: cortexops-postgres-auth
+              secretKey: password
+          visibility:
+            sql:
+              createDatabase: false
+              manageSchema: true
+              pluginName: postgres12
+              driverName: postgres12
+              databaseName: temporal_visibility
+              connectAddr: cortexops-postgresql:5432
+              connectProtocol: tcp
+              user: cortex
+              existingSecret: cortexops-postgres-auth
+              secretKey: password
+

@@ -1,9 +1,16 @@
+{{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
+{{- if .Values.pdb.enabled }}
+{{- range $service := $services }}
+---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ .Release.Name }}-pdb
+  name: {{ $.Release.Name }}-{{ $service }}-pdb
 spec:
-  minAvailable: 2
+  minAvailable: {{ $.Values.pdb.minAvailable }}
   selector:
     matchLabels:
       app: cortexops
+      service: {{ $service }}
+{{- end }}
+{{- end }}

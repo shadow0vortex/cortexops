@@ -1,29 +1,32 @@
-name: Docker Validation
+name: Docker Images
 
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
     paths:
       - 'build/docker/**'
-      - 'frontend/Dockerfile'
       - 'cmd/**'
       - 'internal/**'
       - 'pkg/**'
-      - 'frontend/src/**'
-      - 'frontend/package*.json'
-      - 'frontend/next.config.ts'
+      - 'deploy/compose/**'
+      - 'deploy/helm/**'
+      - 'Makefile'
+      - 'go.mod'
+      - 'go.sum'
       - '.github/workflows/docker.yml'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'build/docker/**'
-      - 'frontend/Dockerfile'
       - 'cmd/**'
       - 'internal/**'
       - 'pkg/**'
-      - 'frontend/src/**'
-      - 'frontend/package*.json'
-      - 'frontend/next.config.ts'
+      - 'deploy/compose/**'
+      - 'deploy/helm/**'
+      - 'Makefile'
+      - 'go.mod'
+      - 'go.sum'
       - '.github/workflows/docker.yml'
 
 jobs:
@@ -40,6 +43,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Log in to Docker Hub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -51,6 +61,17 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildx-backend-${{ matrix.service }}-
 
+    - name: Generate backend image tags
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: docker.io/shadow0vortex/cortexops-${{ matrix.service }}
+        tags: |
+          type=sha,format=long
+          type=ref,event=tag
+          type=semver,pattern={{version}}
+          type=raw,value=latest,enable={{is_default_branch}}
+
     # All backend services share a single Dockerfile.base with SERVICE_NAME as a build arg.
     # This is the correct path — build/docker/Dockerfile.base (not deploy/docker/).
     - name: Build backend image (${{ matrix.service }})
@@ -58,10 +79,11 @@ jobs:
       with:
         context: .
         file: build/docker/Dockerfile.base
-        push: false
+        push: ${{ github.event_name != 'pull_request' }}
         build-args: |
           SERVICE_NAME=${{ matrix.service }}
-        tags: cortexops/${{ matrix.service }}:ci-${{ github.sha }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -89,8 +111,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildx-frontend-
 
-    # Frontend has its own Dockerfile at frontend/Dockerfile (TD-002).
-    # Context is the frontend directory only.
+    # Keep the Vercel-hosted frontend build as validation only; it is not published here.
     - name: Build frontend image
       uses: docker/build-push-action@v6
       with:

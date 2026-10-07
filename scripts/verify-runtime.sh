@@ -1,39 +1,36 @@
-#!/bin/bash
-set -e
+#!/bin/sh
+set -eu
+
+check_http() {
+  name=$1
+  url=$2
+  attempt=1
+
+  printf 'Checking %s...\n' "$name"
+  while [ "$attempt" -le 30 ]; do
+    if curl --fail --silent --show-error --connect-timeout 3 --max-time 5 "$url" >/dev/null; then
+      printf '%s is healthy.\n' "$name"
+      return 0
+    fi
+    attempt=$((attempt + 1))
+    sleep 2
+  done
+
+  printf 'ERROR: %s did not return a successful HTTP response: %s\n' "$name" "$url" >&2
+  return 1
+}
 
 echo "Starting CortexOps Runtime Verification..."
 
-# Check HTTP endpoints
-SERVICES=("topology:9091/debug/healthz" "nats:8222/varz" "prometheus:9090/-/healthy" "grafana:3000/api/health")
+check_http collector http://collector:9091/debug/healthz
+check_http correlator http://correlator:9091/debug/healthz
+check_http topology http://topology:9091/debug/healthz
+check_http rca http://rca:9091/debug/healthz
+check_http remediation http://remediation:9091/debug/healthz
+check_http nats http://nats:8222/varz
+check_http prometheus http://prometheus:9090/-/healthy
+check_http grafana http://grafana:3000/api/health
+check_http temporal-ui http://temporal-ui:8080/
+check_http qdrant http://qdrant:6333/healthz
 
-for svc in "${SERVICES[@]}"; do
-  echo "Checking $svc..."
-  SUCCESS=false
-  for i in {1..30}; do
-    if curl -s "http://$svc" > /dev/null; then
-      SUCCESS=true
-      break
-    fi
-    sleep 2
-  done
-  if [ "$SUCCESS" = false ]; then
-    echo "ERROR: Service $svc is unreachable after 60s"
-    exit 1
-  fi
-done
-
-# Check Temporal
-echo "Checking Temporal status..."
-if ! curl -s "http://temporal:8233" > /dev/null; then
-  echo "ERROR: Temporal UI is unreachable"
-  exit 1
-fi
-
-# Check Qdrant
-echo "Checking Qdrant status..."
-if ! curl -s "http://qdrant:6333/healthz" > /dev/null; then
-  echo "ERROR: Qdrant is unreachable"
-  exit 1
-fi
-
-echo "All services are up and healthy!"
+echo "All HTTP runtime checks passed. PostgreSQL and Temporal server health are covered by their Compose healthchecks."

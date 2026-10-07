@@ -1,4 +1,4 @@
-.PHONY: all build test lint proto clean dev-up dev-down race chaos diagnostics deps proto-lint proto-breaking help
+.PHONY: all build test lint proto clean dev-up dev-down dev-reset race chaos diagnostics deps tidy proto-lint proto-breaking help
 
 # Configuration
 COMPOSE_FILE := deploy/compose/docker-compose.dev.yaml
@@ -12,10 +12,12 @@ help:
 	@echo "------------------------------"
 	@echo "dev-up         : Start ALL services (infrastructure + runtime)"
 	@echo "dev-down       : Stop all services"
+	@echo "dev-reset      : Stop services and delete local volumes"
 	@echo "proto          : Generate Go code from Protobuf"
 	@echo "lint           : Run golangci-lint"
 	@echo "test           : Run all tests"
 	@echo "build          : Build all service binaries"
+	@echo "tidy           : Update Go module files"
 	@echo "clean          : Remove build artifacts"
 	@echo "bootstrap      : Deploy demo workloads to Kind/Minikube"
 	@echo "demo-failure   : Inject deterministic failure (SCENARIO=rollout-fail|crashloop|scaling)"
@@ -32,12 +34,16 @@ dev-up devup:
 
 dev-down devdown:
 	@echo "Stopping CortexOps platform..."
+	docker compose -f $(COMPOSE_FILE) --profile full down
+
+dev-reset:
+	@echo "Stopping CortexOps platform and deleting local volumes..."
 	docker compose -f $(COMPOSE_FILE) --profile full down -v
 
 # Verification
 verify-runtime:
 	@echo "Verifying runtime health..."
-	docker compose -f $(COMPOSE_FILE) run --rm go-builder bash scripts/verify-runtime.sh
+	docker compose -f $(COMPOSE_FILE) --profile tools run --rm runtime-check
 
 validate-pipeline:
 	@echo "Running Golden Path Validation..."
@@ -67,9 +73,12 @@ proto-breaking:
 
 # Fetch dependencies (Dockerized)
 deps:
-	@echo "Tidying and downloading dependencies..."
-	docker compose -f $(COMPOSE_FILE) run --rm go-builder go mod tidy
+	@echo "Downloading dependencies..."
 	docker compose -f $(COMPOSE_FILE) run --rm go-builder go mod download
+
+tidy:
+	@echo "Tidying Go module files..."
+	docker compose -f $(COMPOSE_FILE) run --rm go-builder go mod tidy
 
 # Lint Go code (Dockerized)
 lint:
@@ -133,14 +142,11 @@ dashboards:
 # Detect OS
 ifeq ($(OS),Windows_NT)
     RM := powershell.exe -NoProfile -Command Remove-Item -Recurse -Force
-    RM_F := powershell.exe -NoProfile -Command "Get-ChildItem -Path api/v1/*.pb.go | Remove-Item -Force"
 else
     RM := rm -rf
-    RM_F := rm -f api/v1/*.pb.go
 endif
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning artifacts..."
 	$(RM) $(BIN_DIR)
-	$(RM_F)

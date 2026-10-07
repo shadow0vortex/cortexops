@@ -25,7 +25,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cortex -d cortexops"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -199,6 +199,11 @@ services:
     depends_on:
       nats:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9091/debug/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: always
     deploy:
       resources:
@@ -221,6 +226,11 @@ services:
         condition: service_healthy
       topology:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9091/debug/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: always
     deploy:
       resources:
@@ -243,6 +253,11 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9091/debug/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: always
     deploy:
       resources:
@@ -266,15 +281,28 @@ services:
       - ~/.kube/config:/root/.kube/config:ro
     depends_on:
       temporal:
-        condition: service_started
+        condition: service_healthy
       topology:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9091/debug/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: always
     deploy:
       resources:
         limits:
           cpus: '0.5'
           memory: 512M
+
+  runtime-check:
+    image: curlimages/curl:8.12.1
+    profiles: ["tools"]
+    volumes:
+      - ../../:/workspace:ro
+    working_dir: /workspace
+    entrypoint: ["/bin/sh", "scripts/verify-runtime.sh"]
 
   temporal-ui:
     image: temporalio/ui:latest
@@ -306,6 +334,7 @@ services:
   # Developer Tooling
   # ---------------------------------------------------------
   proto-builder:
+    profiles: ["tools"]
     build:
       context: ../../
       dockerfile: build/docker/proto.Dockerfile
@@ -314,6 +343,7 @@ services:
     working_dir: /workspace
 
   go-builder:
+    profiles: ["tools"]
     image: golang:1.25-alpine
     volumes:
       - ../../:/workspace
@@ -324,6 +354,7 @@ services:
       - CGO_ENABLED=0
 
   golangci-lint:
+    profiles: ["tools"]
     image: golangci/golangci-lint:v1.59.1-alpine
     volumes:
       - ../../:/workspace

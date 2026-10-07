@@ -36,6 +36,7 @@ RUN apk add --no-cache ca-certificates wget
 
 # Copy the binary from the builder stage
 COPY --from=builder /go/bin/${SERVICE_NAME} /app/service
+COPY --from=builder /workspace/deploy/migrations /workspace/deploy/migrations
 
 # Create a non-root user for security
 RUN addgroup -S cortexops -g 10001 && adduser -S cortexops -G cortexops -u 10001
