@@ -64,9 +64,12 @@ spec:
     spec:
       containers:
       - name: api
-        image: bitnami/node-example:0.0.1
+        image: hashicorp/http-echo:1.0.0
+        args:
+        - "-listen=:8080"
+        - "-text=CortexOps demo API is healthy"
         ports:
-        - containerPort: 3000
+        - containerPort: 8080
         env:
         - name: DB_URL
           value: "postgres://demo-postgres:5432"
@@ -83,7 +86,7 @@ spec:
     app: api
   ports:
   - port: 8080
-    targetPort: 3000
+    targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -106,10 +109,20 @@ spec:
     spec:
       containers:
       - name: worker
-        image: bitnami/node-example:0.0.1
+        image: busybox:1.36.1
+        command: ["sh", "-c", "while true; do sleep 30; done"]
         env:
         - name: DB_URL
           value: "postgres://demo-postgres:5432"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cortexops-secrets
+  namespace: cortexops-demo
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: local-demo-password-only
 ---
 apiVersion: apps/v1
 kind: Deployment

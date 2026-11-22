@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -44,6 +45,17 @@ func main() {
 		if err != nil {
 			log.Warn("Failed to load kubeconfig, falling back to fake clientset for development", "error", err)
 			client = fake.NewSimpleClientset()
+		} else if os.Getenv("DOCKER_COMPOSE_ENV") == "true" {
+			if os.Getenv("ENVIRONMENT") == "production" {
+				log.Error("DOCKER_COMPOSE_ENV=true is not allowed in production")
+				os.Exit(1)
+			}
+			log.Warn("DOCKER_COMPOSE_ENV=true: rewriting loopback addresses to host.docker.internal and disabling TLS verification for local development")
+			config.Host = strings.ReplaceAll(config.Host, "127.0.0.1", "host.docker.internal")
+			config.Host = strings.ReplaceAll(config.Host, "localhost", "host.docker.internal")
+			config.Insecure = true
+			config.CAFile = ""
+			config.CAData = nil
 		}
 	}
 

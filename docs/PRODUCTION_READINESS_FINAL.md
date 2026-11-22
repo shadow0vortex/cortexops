@@ -1,114 +1,67 @@
-# CortexOps Final Production Readiness Report
+# CortexOps Production Readiness Assessment
 
-## Executive Summary
-CortexOps has been systematically hardened across six engineering milestones — from security foundation and observability integration through data layer modernization, infrastructure hardening, platform integration, and Kubernetes production hardening. The platform now meets production-grade standards across all evaluated domains.
+## Current verdict
 
-**Final Verdict:** `PRODUCTION READY` — Tag: `v1.0.0-production`
+**Not production ready as a hosted, multi-tenant product.** The repository contains a useful Kubernetes operations prototype and a working local integration demo, but it does not yet provide the identity, tenant isolation, durable operational data, or live user dashboard required for real customer deployments.
 
----
+The previous version of this report claimed production readiness and included performance/security ratings that were not independently reproducible. Those claims have been removed; do not use them as deployment or resume evidence.
 
-## 1. Architecture Scorecard
+## What was verified locally
 
-| Domain | Score | Justification |
-|--------|-------|---------------|
-| **Service Boundaries** | **A** | Clear decoupling between ingestion (Collector), correlation, diagnostics (RCA), and execution (Remediation). Per-service ServiceAccounts enforce isolation at the identity layer. |
-| **Event-Driven Design** | **A+** | NATS JetStream with authenticated connections guarantees at-least-once delivery with exactly-once semantics via `Nats-Msg-Id`. |
-| **Failure Isolation** | **A+** | Microservice pod crashes do not propagate cascade failures. NetworkPolicies prevent lateral movement. Resource limits prevent noisy-neighbor effects. |
-| **API Design** | **A** | Versioned REST API (`/v1/`) with Bearer token authentication. Health endpoints remain unauthenticated for Kubernetes probe compatibility. |
+Using Docker Compose and a local `kind` cluster:
 
----
+| Check | Result |
+|---|---|
+| `docker compose -f deploy/compose/docker-compose.dev.yaml --profile full config --quiet` | Passed |
+| `go test ./...` | Passed with the local Kubernetes context available |
+| `go vet ./...` | Passed |
+| `npm run lint` | Passed with 18 existing warnings |
+| `npm run build` | Passed; Next.js warned about an additional lockfile outside the repository |
+| `make verify-runtime` | Passed for all Compose runtime services |
+| `make diagnostics` | Passed; returned live topology data |
+| `make validate-pipeline` | Passed; demo Kubernetes events reached collector, correlator, RCA, remediation, and a Temporal workflow |
+| `helm lint deploy/helm/cortexops` | Not run; Helm was not installed in the validation environment |
 
-## 2. Reliability Scorecard
+These are local development checks, not a production deployment, load test, security certification, or proof of service-level objectives. The e2e test package also contains mocked assertions and should not be treated as evidence of full system behavior by itself.
 
-| Domain | Score | Justification |
-|--------|-------|---------------|
-| **Replay Safety** | **A+** | Idempotency validated. 100k identical events resolve to a single Temporal execution pipeline. |
-| **Workflow Durability** | **A+** | Temporal server persists execution state; workflows resume accurately upon worker failure. |
-| **Recovery Guarantees** | **A** | Remediation executors natively support automated rollback mechanisms upon operation failures. |
-| **Data Safety** | **A** | Automated hourly backups (PostgreSQL + Qdrant) with 7-day retention. Versioned schema migrations. |
-| **Probe Coverage** | **A+** | All 5 services have both liveness and readiness probes (`/debug/healthz`). |
+## Production blockers
 
----
+### Identity and tenant isolation
 
-## 3. Security Scorecard
+- The diagnostics API uses one optional shared bearer token; if it is unset, protected routes are unauthenticated.
+- There is no OIDC login, user/account model, organization membership, role-based authorization, or tenant-scoped API/data access.
+- The frontend has no authenticated connection to the backend.
 
-| Domain | Score | Justification |
-|--------|-------|---------------|
-| **RBAC** | **A+** | Per-service ServiceAccounts. Only `collector` and `remediation` have K8s API bindings. Namespace-scoped by default. |
-| **OPA Governance** | **A+** | Rego policies gate action types, protected namespaces, and maintenance windows. Structured deny reasons for audit trail. |
-| **Container Hardening** | **A+** | Non-root (UID 10001), read-only filesystem, `drop: ALL` capabilities, `seccomp: RuntimeDefault`. |
-| **Network Security** | **A** | Per-service NetworkPolicies with default-deny ingress. Explicit egress rules to infrastructure ports. |
-| **Authentication** | **A** | Bearer token API, NATS NKey identity (production), BasicAuth on Temporal UI. No anonymous data access. |
-| **HTTP Headers** | **A** | CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy. `X-Powered-By` removed. |
+### Durable product data
 
----
+- Remediation audit records are held in an in-memory `MemoryAuditStore`.
+- There is no durable, tenant-scoped incident/action history or retention model.
+- The topology graph is in memory in the local Compose setup; persistence and restore behavior have not been verified as a recovery procedure.
 
-## 4. Scalability Scorecard
+### Real user-facing monitoring
 
-| Domain | Score | Justification |
-|--------|-------|---------------|
-| **Load Test Performance** | **A** | Ingests 100,000 events in ~2.5 seconds (39k+ events/sec). Temporal Server is the primary bottleneck requiring horizontal scaling under extreme sustained load. |
-| **Resource Efficiency** | **A+** | Go microservices maintain ~10-15MB memory footprint regardless of event storm severity. Resource limits enforced at both Compose and Helm layers. |
-| **Auto-Scaling** | **A** | HPA configured for all services with CPU (80%) and memory (80%) targets. Anti-affinity rules distribute replicas across nodes. |
+- The observability page displays hard-coded sample values and simulated charts.
+- The Kanban board is not backed by live incident/workflow APIs.
+- Topology discovery currently watches Pods and records a limited scheduled-on relationship; it does not yet build a complete service/deployment dependency graph.
 
----
+### Safe production remediation
 
-## 5. Observability Scorecard
+- Remediation logic contains demo-specific target selection, including the `cortexops-demo/demo-frontend` target.
+- Automated execution, approval, rollback, and tenant authorization have not been validated against production-grade multi-tenant policies.
+- The Compose configuration is deliberately development-only. It uses local kubeconfig access and a TLS-verification bypass; do not deploy it or reuse those settings in production.
 
-| Domain | Score | Justification |
-|--------|-------|---------------|
-| **Metrics** | **A+** | Prometheus endpoints on all services. ServiceMonitor for K8s-native discovery. Pre-provisioned Grafana dashboard. |
-| **Tracing** | **A** | OpenTelemetry OTLP trace exporter configured across all services. End-to-end request tracing capability. |
-| **Logging** | **A** | Centralized log aggregation via Loki + Promtail. Structured JSON logging via `slog`. Queryable in Grafana. |
-| **Alerting** | **A** | Prometheus rules for service down, high error rate, latency SLOs, and NATS backpressure. |
-| **Diagnostics** | **A** | Built-in `cmd/chaos` CLI for replay, storm, and partition testing. |
+### Operational evidence
 
----
+- Helm validation, backup restoration, disaster recovery, sustained-load tests, and an external identity-provider flow were not run in this assessment.
+- The current test suite does not establish tenant-isolation, authorization, or recovery guarantees.
+- The repository's earlier scorecards and benchmark numbers should be considered unverified until rerun from reproducible scripts with raw results.
 
-## 6. Operations & Deployment Scorecard
+## Recommended delivery gates
 
-| Domain | Score | Justification |
-|--------|-------|---------------|
-| **Helm Validation** | **A** | Chart passes linting. Supports HPA, PDB, anti-affinity, ServiceMonitor, and per-service NetworkPolicies. |
-| **GitOps Readiness** | **A** | ArgoCD Application manifest with self-heal, prune, and retry backoff. |
-| **Kubernetes Readiness** | **A+** | Liveness + readiness probes on all services. Per-service SA. NetworkPolicies. Resource requests/limits. |
-| **Database Operations** | **A** | Versioned migrations (`golang-migrate`). Per-service schema isolation. Automated backup/restore. |
-| **Platform Integration** | **A** | Traefik routing, Homepage auto-discovery, Uptime Kuma monitoring. |
-| **Cross-Platform** | **A** | Docker Compose works on Linux, macOS, and Windows (tilde-based kubeconfig mounts). |
+1. **Identity and authorization:** add OIDC/JWT validation, organization membership, roles, explicit tenant context, and deny-by-default API authorization. Missing production identity configuration must fail startup.
+2. **Tenant-safe persistence:** add migrations for organizations, users/memberships, clusters, incidents, remediation actions, and append-only audit records. Enforce tenant scoping in every query and test cross-tenant access denial.
+3. **Live observability:** replace demo numbers and board state with authenticated APIs backed by actual telemetry, incident, topology, and Temporal data. Show loading, empty, stale, and error states.
+4. **Governed remediation:** remove fixed demo targets; require validated target scope, policy decision, approval where needed, durable audit, idempotency, and tested rollback before enabling execution.
+5. **Release proof:** split unit/integration/cluster tests, run CI against a disposable cluster, lint Helm, test migrations and restore, scan immutable images, and publish measured SLO/load/security evidence.
 
----
-
-## 7. Validation Evidence
-
-### Static Analysis
-```
-$ go vet ./...
-# Zero errors
-```
-
-### Helm Chart Validation
-```
-$ helm lint deploy/helm/cortexops
-==> Linting deploy/helm/cortexops
-[INFO] Chart.yaml: icon is recommended
-1 chart(s) linted, 0 chart(s) failed
-```
-
-### Docker Compose Validation
-```
-$ docker compose -f deploy/compose/docker-compose.dev.yaml config
-# Parsed successfully — networks, limits, labels, auth validated
-```
-
-### Unit & Integration Tests
-```
-$ go test -v ./...
-# All packages pass — topology persistence, graph store, OPA policy, chaos injection
-```
-
----
-
-## Conclusion
-CortexOps meets the rigorous operational, security, and scalability standards expected of a modern Kubernetes control plane. The platform has been systematically hardened across 40 technical debt items and validated through static analysis, unit testing, chart linting, and compose validation.
-
-The repository is production-grade, suitable for enterprise deployment, open-source consumption, and portfolio demonstration.
+Until these gates pass, describe CortexOps as an **active-development Kubernetes operations prototype with a locally verified integration demo**, not an enterprise-ready hosted service.

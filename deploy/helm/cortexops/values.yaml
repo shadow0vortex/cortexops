@@ -141,6 +141,8 @@ nats:
 postgresql:
   enabled: true
   architecture: standalone
+  image:
+    digest: sha256:ea7edc281ba9f65e6af5cabbd1ade6e1a32ff473aa79395c2ffd8d6aff8b2036
   auth:
     username: cortex
     database: cortexops

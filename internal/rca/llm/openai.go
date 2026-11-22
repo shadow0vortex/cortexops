@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -15,15 +16,24 @@ type OpenAIClient struct {
 	apiKey     string
 	model      string
 	embedModel string
+	baseURL    string
 	client     *http.Client
 }
 
 // NewOpenAIClient initializes a new HTTP-based OpenAI client.
 func NewOpenAIClient(apiKey string) *OpenAIClient {
+	return NewOpenAIClientWithBaseURL(apiKey, "https://api.openai.com")
+}
+
+func NewOpenAIClientWithBaseURL(apiKey, baseURL string) *OpenAIClient {
+	if baseURL == "" {
+		baseURL = "https://api.openai.com"
+	}
 	return &OpenAIClient{
 		apiKey:     apiKey,
 		model:      "gpt-4o-mini",
 		embedModel: "text-embedding-3-small",
+		baseURL:    strings.TrimRight(baseURL, "/"),
 		client: &http.Client{
 			Timeout: 10 * time.Second, // Timeout isolation
 		},
@@ -76,7 +86,7 @@ func (c *OpenAIClient) GenerateRCA(ctx context.Context, prompt string) (string, 
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/chat/completions", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -123,7 +133,7 @@ func (c *OpenAIClient) GenerateEmbeddings(ctx context.Context, text string) ([]f
 		return nil, fmt.Errorf("failed to marshal embed request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/embeddings", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/embeddings", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create embed request: %w", err)
 	}

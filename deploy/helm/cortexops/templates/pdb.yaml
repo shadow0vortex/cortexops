@@ -1,6 +1,9 @@
 {{- $services := list "collector" "correlator" "topology" "rca" "remediation" -}}
 {{- if .Values.pdb.enabled }}
 {{- range $service := $services }}
+{{- $svcValues := index $.Values $service }}
+{{- $replicas := $svcValues.autoscaling.minReplicas | default ($svcValues.replicaCount | default $.Values.replicaCount) }}
+{{- if gt (int $replicas) 1 }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -12,5 +15,6 @@ spec:
     matchLabels:
       app: cortexops
       service: {{ $service }}
+    {{- end }}
 {{- end }}
 {{- end }}

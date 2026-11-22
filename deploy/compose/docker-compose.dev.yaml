@@ -2,7 +2,7 @@ services:
   nats:
     image: nats:2.10-alpine
     profiles: ["infra", "cortexops", "full"]
-    command: ["--js", "-m", "8222", "--user", "admin", "--pass", "cortexpassword"]
+    command: ["--js", "-m", "8222", "--user", "${NATS_USER:-admin}", "--pass", "${NATS_PASSWORD:-cortexpassword}"]
     ports:
       - "4222:4222"
       - "8222:8222"
@@ -25,7 +25,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,6 +43,9 @@ services:
   temporal-schema-setup:
     image: temporalio/admin-tools:1.23.0
     profiles: ["infra", "remediation", "cortexops", "full"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cortex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cortexpassword}
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,11 +75,29 @@ services:
       temporal-schema-setup:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "temporal cluster health || tctl cluster health || exit 1"]
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "temporal:7233"]
       interval: 15s
       timeout: 10s
       retries: 6
       start_period: 30s
+
+  temporal-namespace-setup:
+    image: temporalio/admin-tools:1.23.0
+    profiles: ["infra", "remediation", "cortexops", "full"]
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    entrypoint:
+      - sh
+      - -c
+      - |
+        if temporal operator namespace describe default >/dev/null 2>&1; then
+          echo "Temporal namespace default already exists."
+        else
+          temporal operator namespace create --retention 3 default
+        fi
+    depends_on:
+      temporal:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:v2.51.0
@@ -166,6 +187,9 @@ services:
     profiles: ["cortexops", "full"]
     environment:
       - DIAG_PORT=9091
+      - DOCKER_COMPOSE_ENV=true
+    volumes:
+      - ~/.kube/config:/home/cortexops/.kube/config:ro
     ports:
       - "9091:9091"
     healthcheck:
@@ -192,10 +216,10 @@ services:
         SERVICE_NAME: collector
     profiles: ["cortexops", "full"]
     environment:
-      - NATS_URL=nats://admin:cortexpassword@nats:4222
+      - NATS_URL=nats://${NATS_USER:-admin}:${NATS_PASSWORD:-cortexpassword}@nats:4222
       - DOCKER_COMPOSE_ENV=true
     volumes:
-      - ~/.kube/config:/root/.kube/config:ro
+      - ~/.kube/config:/home/cortexops/.kube/config:ro
     depends_on:
       nats:
         condition: service_healthy
@@ -219,7 +243,7 @@ services:
         SERVICE_NAME: correlator
     profiles: ["cortexops", "full"]
     environment:
-      - NATS_URL=nats://admin:cortexpassword@nats:4222
+      - NATS_URL=nats://${NATS_USER:-admin}:${NATS_PASSWORD:-cortexpassword}@nats:4222
       - TOPOLOGY_URL=http://topology:9091
     depends_on:
       nats:
@@ -246,7 +270,7 @@ services:
         SERVICE_NAME: rca
     profiles: ["cortexops", "ai", "full"]
     environment:
-      - NATS_URL=nats://admin:cortexpassword@nats:4222
+      - NATS_URL=nats://${NATS_USER:-admin}:${NATS_PASSWORD:-cortexpassword}@nats:4222
       - QDRANT_URL=http://qdrant:6333
     depends_on:
       nats:
@@ -275,13 +299,15 @@ services:
     environment:
       - TEMPORAL_URL=temporal:7233
       - TOPOLOGY_URL=http://topology:9091
-      - NATS_URL=nats://admin:cortexpassword@nats:4222
+      - NATS_URL=nats://${NATS_USER:-admin}:${NATS_PASSWORD:-cortexpassword}@nats:4222
       - DOCKER_COMPOSE_ENV=true
     volumes:
-      - ~/.kube/config:/root/.kube/config:ro
+      - ~/.kube/config:/home/cortexops/.kube/config:ro
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-namespace-setup:
+        condition: service_completed_successfully
       topology:
         condition: service_healthy
     healthcheck:

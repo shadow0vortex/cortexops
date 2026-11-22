@@ -15,9 +15,9 @@
 
 <br/>
 
-CortexOps is an enterprise-grade, event-driven control plane extension for Kubernetes. It addresses the MTTR (Mean Time To Recovery) crisis by bridging the gap between passive monitoring and autonomous self-healing—without sacrificing operational safety.
+CortexOps is an event-driven Kubernetes operations control-plane project under active development. Its local kind-and-Compose demo exercises real Kubernetes event ingestion, correlation, RCA, and Temporal workflows.
 
-By ingesting raw infrastructure telemetry, building deterministic causal chains, and orchestrating policy-governed remediations, CortexOps acts as a tireless, high-scale SRE for your clusters.
+It is not yet a production-ready hosted service: user identity, tenant isolation, persistent incident/audit records, and live frontend dashboards remain planned work. See the [current production readiness assessment](docs/PRODUCTION_READINESS_FINAL.md) for verified status and gaps.
 
 ---
 
@@ -65,38 +65,42 @@ graph LR
 
 ### Prerequisites
 - Docker & Docker Compose v2+
-- `~/.kube/config` pointing to a Kubernetes cluster (for `collector` and `remediation`)
+- Go 1.25+, `kubectl`, and `kind`
 
-### 1. Spin up the Infrastructure
-Deploy the full stack (NATS, Temporal, Qdrant, PostgreSQL, Grafana, Loki, and all CortexOps services):
+### 1. Create a local Kubernetes cluster
+The local Compose stack connects to the current kubeconfig context. Use a disposable cluster for this demo:
+```bash
+kind create cluster --name cortexops-dev
+```
+
+### 2. Start the full stack and demo workloads
 ```bash
 make dev-up
+make bootstrap
 ```
 
-### 2. Verify System Health
-Ensure all components are communicating:
+### 3. Verify System Health
+Ensure all components are communicating and the demo workloads are deployed:
 ```bash
 make verify-runtime
+kubectl get pods -n cortexops-demo
 ```
 
-### 3. Access the Dashboards
+### 4. Access the Dashboards
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| **Documentation Portal** (Next.js) | `http://localhost:3000` | — |
 | **Grafana** (Metrics & Logs) | `http://localhost:3000` | Anonymous admin |
-| **Temporal UI** (Workflows) | `http://localhost:8233` | `admin / password` |
+| **Temporal UI** (Workflows) | `http://localhost:8233` | No authentication (local development only) |
 | **Prometheus** (Raw Metrics) | `http://localhost:9090` | — |
 | **NATS Monitoring** | `http://localhost:8222` | — |
 
-### 4. Run Chaos Tests
+### 5. Inject and recover a demo failure
 ```bash
-# Duplicate event storm (tests deduplication)
-go run ./cmd/chaos -- --test duplicate-storm --count 1000
-
-# Workflow idempotency test
-go run ./cmd/chaos -- --test workflow-idempotency
+make demo-failure SCENARIO=rollout-fail
+make demo-recovery
 ```
+The Docker Compose setup is for local development and testing only. Do not use its development Kubernetes TLS settings or anonymous dashboard defaults for production.
 
 ---
 
@@ -190,13 +194,18 @@ docker compose -f deploy/compose/docker-compose.dev.yaml --profile infra up -d
 ```
 
 ### Helm (Production Kubernetes)
+
+See the [self-hosted production deployment runbook](docs/SELF_HOSTED_DEPLOYMENT.md) for Docker Hub publishing, required Kubernetes Secrets, persistent dependencies, ingress/TLS, and the Vercel frontend/API domain setup.
+
 ```bash
 # Lint the chart
 helm lint deploy/helm/cortexops
 
-# Install with required image tag
+# Install with the backend image tag published by GitHub Actions
 helm install cortexops deploy/helm/cortexops \
   --namespace cortexops --create-namespace \
+  --set ingress.enabled=true \
+  --set ingress.host=api.example.com \
   --set image.tag=v1.0.0
 ```
 

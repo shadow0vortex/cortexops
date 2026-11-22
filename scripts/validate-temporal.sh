@@ -1,24 +1,25 @@
-#!/bin/bash
-# Validate Temporal Setup & Workflows
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "Checking Temporal Server health..."
+echo "Checking Temporal UI..."
 MAX_RETRIES=15
 RETRY_COUNT=0
-until curl -s -f http://localhost:8233 > /dev/null || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+until curl --fail --silent --show-error http://localhost:8233/ >/dev/null || [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; do
     echo "Waiting for Temporal UI..."
     sleep 5
-    ((RETRY_COUNT++))
+    RETRY_COUNT=$((RETRY_COUNT + 1))
 done
 
-if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo "ERROR: Temporal UI is not responding on port 8233"
+if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
+    echo "ERROR: Temporal UI is not responding on port 8233" >&2
     exit 1
 fi
-echo "Temporal UI is accessible."
 
-echo "Checking for registered workers..."
-# For this script we will verify the workflow creation end-to-end via the API or chaos tool
-echo "Running Failure Injection to trigger a workflow..."
-go run ./cmd/chaos failure-injection rollout-fail
+echo "Checking Temporal default namespace..."
+docker run --rm --network cortexops-dev \
+    -e TEMPORAL_ADDRESS=temporal:7233 \
+    --entrypoint temporal temporalio/admin-tools:1.23.0 \
+    operator namespace describe default >/dev/null
 
-echo "Validation successful. Workflows can be viewed in Temporal UI."
+echo "Running the live failure-to-workflow validation..."
+make validate-pipeline

@@ -83,6 +83,10 @@ func main() {
 		if err != nil {
 			log.Error("Failed to load kubeconfig", "error", err)
 		} else if os.Getenv("DOCKER_COMPOSE_ENV") == "true" {
+			if os.Getenv("ENVIRONMENT") == "production" {
+				log.Error("DOCKER_COMPOSE_ENV=true is not allowed in production")
+				os.Exit(1)
+			}
 			log.Info("DOCKER_COMPOSE_ENV=true detected, rewriting loopback to host.docker.internal")
 			config.Host = strings.ReplaceAll(config.Host, "127.0.0.1", "host.docker.internal")
 			config.Host = strings.ReplaceAll(config.Host, "localhost", "host.docker.internal")

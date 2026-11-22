@@ -24,6 +24,7 @@ func NewAPI(store *graph.MemoryGraphStore) *API {
 func (api *API) RegisterRoutes(mux *http.ServeMux) {
 	// Health endpoint — unauthenticated (for K8s probes)
 	mux.HandleFunc("GET /health", api.handleHealth)
+	mux.HandleFunc("GET /debug/healthz", api.handleHealth)
 
 	// Versioned API endpoints — protected by bearer token
 	mux.HandleFunc("GET /v1/topology/nodes", api.requireAuth(api.handleListNodes))

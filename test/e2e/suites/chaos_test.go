@@ -1,3 +1,5 @@
+//go:build integration
+
 package suites
 
 import (
@@ -29,19 +31,22 @@ func TestChaos_LLMTimeout(t *testing.T) {
 	t.Log("[CHAOS] Phase 1: Creating a black-hole HTTP server that never responds...")
 
 	// Spin up a mock OpenAI server that hangs forever (simulating network blackhole).
+	stopBlackhole := make(chan struct{})
 	blackhole := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Block indefinitely until the client gives up.
-		<-r.Context().Done()
+		select {
+		case <-r.Context().Done():
+		case <-stopBlackhole:
+		}
 	}))
 	defer blackhole.Close()
+	defer close(stopBlackhole)
 
 	t.Log("[CHAOS] Phase 2: Exercising GenerateRCA with a tight timeout...")
 
 	// Create an LLM client with a real API key. The client's internal HTTP timeout is 10s,
 	// but we use a context with 100ms to simulate an aggressive caller SLA.
-	// Since the client points at the real OpenAI URL (unreachable under timeout),
-	// the context deadline will fire first and the request will abort.
-	client := llm.NewOpenAIClient("test-api-key")
+	// The mock endpoint never responds, so the context deadline aborts the request.
+	client := llm.NewOpenAIClientWithBaseURL("test-api-key", blackhole.URL)
 
 	ctx, cancel := context.WithTimeout(h.Ctx, 100*time.Millisecond)
 	defer cancel()

@@ -1,9 +1,15 @@
-.PHONY: all build test lint proto clean dev-up dev-down dev-reset race chaos diagnostics deps tidy proto-lint proto-breaking help
+.PHONY: all build test lint proto clean dev-up dev-down dev-reset race chaos chaos-test diagnostics deps tidy proto-lint proto-breaking verify-runtime validate-pipeline validate-temporal help
 
 # Configuration
 COMPOSE_FILE := deploy/compose/docker-compose.dev.yaml
 BIN_DIR      := bin
 SERVICES     := collector correlator topology rca remediation
+
+ifeq ($(OS),Windows_NT)
+BASH ?= "C:/Program Files/Git/bin/bash.exe"
+else
+BASH ?= bash
+endif
 
 all: proto lint test build
 
@@ -24,7 +30,7 @@ help:
 	@echo "demo-recovery  : Restore demo environment from failure"
 	@echo "diagnostics    : Run live platform diagnostics"
 	@echo "validate-pipeline: Run golden path operational validation"
-	@echo "chaos-test     : Run operational failure validation"
+	@echo "chaos-test     : Run integration-tagged chaos tests (requires a reachable Kubernetes cluster)"
 	@echo "dashboards     : Show dashboard access information"
 
 # Initialize local dev environment
@@ -43,20 +49,19 @@ dev-reset:
 # Verification
 verify-runtime:
 	@echo "Verifying runtime health..."
-	docker compose -f $(COMPOSE_FILE) --profile tools run --rm runtime-check
+	docker compose -f $(COMPOSE_FILE) --profile full --profile tools run --rm runtime-check
 
 validate-pipeline:
 	@echo "Running Golden Path Validation..."
-	bash scripts/validate-pipeline.sh
+	$(BASH) scripts/validate-pipeline.sh
 
 validate-temporal:
 	@echo "Validating Temporal Workflows..."
-	bash scripts/validate-temporal.sh
+	$(BASH) scripts/validate-temporal.sh
 
 chaos-test:
-	@echo "Running chaos validation (Duplicate Storm & Idempotency)..."
-	go run ./cmd/chaos/main.go duplicate-storm
-	go run ./cmd/chaos/main.go workflow-idempotency
+	@echo "Running integration-tagged chaos tests..."
+	go test -v -tags=integration ./test/e2e/suites -run '^TestChaos_'
 
 # Protobuf generation (Dockerized)
 proto:
@@ -102,20 +107,18 @@ race: deps
 	@echo "Running tests with race detector..."
 	docker compose -f $(COMPOSE_FILE) run --rm -e CGO_ENABLED=1 go-builder go test -v -race ./...
 
-# Run chaos tests (Dockerized)
-chaos: deps
-	@echo "Running chaos tests..."
-	docker compose -f $(COMPOSE_FILE) run --rm go-builder go test -v -tags=chaos ./test/e2e/chaos/...
+# Run cluster-dependent chaos tests
+chaos: chaos-test
 
 # Run diagnostics (Dockerized)
 diagnostics:
 	@echo "Running CortexOps diagnostics..."
 	@echo "--- Platform Health ---"
-	curl -s http://localhost:9091/debug/healthz || echo "Platform offline"
-	@echo "\n--- Active Incidents ---"
-	curl -s http://localhost:9091/debug/incidents/active || echo "Platform offline"
-	@echo "\n--- Topology Blast Radius (Example) ---"
-	curl -s "http://localhost:9091/debug/graph/blast-radius?id=pod/cortexops-demo/demo-api" || echo "Platform offline"
+	@curl -fsS http://localhost:9091/debug/healthz
+	@echo --- Topology Nodes ---
+	@curl -fsS http://localhost:9091/v1/topology/nodes
+	@echo --- Topology Blast Radius (Example) ---
+	@curl -fsS "http://localhost:9091/v1/topology/blast-radius/pod%2Fcortexops-demo%2Fdemo-api"
 
 # Demo Automation
 SCENARIO ?= rollout-fail
