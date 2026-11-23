@@ -28,6 +28,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/docker.yml'
+  workflow_dispatch:
 
 jobs:
   build-backend:
@@ -43,10 +44,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Check Docker Hub publishing credentials
+      id: dockerhub
+      shell: bash
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      run: |
+        if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "configured=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Log in to Docker Hub
-      if: ${{ github.event_name != 'pull_request' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+      if: ${{ github.event_name != 'pull_request' && steps.dockerhub.outputs.configured == 'true' }}
       uses: docker/login-action@v3
-      with:
+      with: 
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
@@ -79,13 +93,17 @@ jobs:
       with:
         context: .
         file: build/docker/Dockerfile.base
-        push: ${{ github.event_name != 'pull_request' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        push: ${{ github.event_name != 'pull_request' && steps.dockerhub.outputs.configured == 'true' }}
         build-args: |
           SERVICE_NAME=${{ matrix.service }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+    - name: Report build-only mode
+      if: ${{ github.event_name != 'pull_request' && steps.dockerhub.outputs.configured != 'true' }}
+      run: echo "::warning::Docker Hub secrets are missing; images were built but not published."
 
     - name: Move cache
       run: |
