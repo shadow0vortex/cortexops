@@ -99,6 +99,8 @@ The chart expects `cortexops-postgres-auth` key `password`; `cortexops-postgres`
 
 `allowRemediationWrites` defaults to `false`. Keep it disabled for monitoring-only deployments. Enabling it grants the remediation service account permission to delete pods and patch deployments at the selected access scope (`clusterWideAccess` determines whether that scope is namespace-wide or cluster-wide).
 
+The [homelab values profile](../deploy/helm/cortexops/values-homelab.yaml) enables cluster-wide read-only observation, uses one replica per CortexOps service, and disables autoscaling and pod disruption budgets. The [Argo CD Application](../deploy/argocd/application.yaml) uses this profile and requires a manual sync; it does not automatically prune resources. It has no cascading deletion finalizer, so deleting the Application leaves its resources in place for deliberate cleanup.
+
 ## Install CortexOps
 
 The chart includes the pinned NATS, PostgreSQL, Qdrant, and Temporal dependencies. The root chart's PostgreSQL image is pinned by digest for both amd64 and arm64. Register the upstream repositories, build the committed lock file, then install using the same backend image tag across all services:

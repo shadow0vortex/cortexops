@@ -5,11 +5,13 @@ on:
     branches: [ "main" ]
     paths:
       - 'deploy/helm/**'
+      - 'deploy/argocd/**'
       - '.github/workflows/helm.yml'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'deploy/helm/**'
+      - 'deploy/argocd/**'
       - '.github/workflows/helm.yml'
 
 jobs:
@@ -74,3 +76,25 @@ jobs:
           --set allowRemediationWrites=true)
         echo "$remediation_enabled" | grep -Fq 'name: cortexops-k8s-remediation-role'
         echo "$remediation_enabled" | grep -Fq 'name: cortexops-remediation-write-binding'
+
+        homelab_rbac=$(helm template cortexops deploy/helm/cortexops \
+          --show-only templates/rbac.yaml \
+          --values deploy/helm/cortexops/values-homelab.yaml)
+        echo "$homelab_rbac" | grep -Fq 'kind: ClusterRole'
+        if echo "$homelab_rbac" | grep -Fq 'name: cortexops-k8s-remediation-role'; then
+          echo "Homelab profile must remain read-only" >&2
+          exit 1
+        fi
+
+        homelab_deployments=$(helm template cortexops deploy/helm/cortexops \
+          --show-only templates/deployment.yaml \
+          --values deploy/helm/cortexops/values-homelab.yaml)
+        deployment_count=$(echo "$homelab_deployments" | grep -c '^  replicas: 1$' || true)
+        test "$deployment_count" -eq 5
+        homelab_render=$(helm template cortexops deploy/helm/cortexops \
+          --values deploy/helm/cortexops/values-homelab.yaml)
+        if echo "$homelab_render" | grep -A6 'kind: HorizontalPodAutoscaler' \
+          | grep -Eq 'name: cortexops-(collector|correlator|topology|rca|remediation)(-|$)'; then
+          echo "Homelab profile must disable service autoscaling" >&2
+          exit 1
+        fi

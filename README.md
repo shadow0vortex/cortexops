@@ -191,7 +191,7 @@ For prerequisites and secret setup, use [the self-hosted deployment runbook](doc
 
 ### Argo CD
 
-The repository currently contains an Argo CD Application manifest. Full GitOps implementation, environment promotion, image update automation, and delivery verification are planned as the next infrastructure milestone rather than implied by the current manifest.
+The repository includes a manually synchronized Argo CD Application and a single-node homelab values profile. Publish the backend images and create the runtime Kubernetes secrets before syncing it. Environment promotion, image update automation, and delivery verification remain future work.
 
 ## Security model
 

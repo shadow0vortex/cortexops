@@ -1,5 +1,8 @@
 clusterWideAccess: true
 allowRemediationWrites: false
+image:
+  tag: sha-cc70d522764fa1a2a618c6866494b6c996c01c89
+
 ingress:
   enabled: false
 
