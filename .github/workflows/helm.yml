@@ -98,3 +98,11 @@ jobs:
           echo "Homelab profile must disable service autoscaling" >&2
           exit 1
         fi
+
+        temporal_schema_job=$(helm template cortexops deploy/helm/cortexops \
+          --show-only charts/temporal/templates/server-job.yaml \
+          --values deploy/helm/cortexops/values-homelab.yaml)
+        if echo "$temporal_schema_job" | grep -Fq '"helm.sh/hook": pre-install,pre-upgrade'; then
+          echo "Homelab Temporal schema job must be managed as a regular Argo resource" >&2
+          exit 1
+        fi

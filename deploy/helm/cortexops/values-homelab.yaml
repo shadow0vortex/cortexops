@@ -34,3 +34,7 @@ remediation:
   replicaCount: 1
   autoscaling:
     enabled: false
+
+temporal:
+  schema:
+    useHelmHooks: false
