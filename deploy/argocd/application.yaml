@@ -6,8 +6,6 @@ metadata:
   labels:
     app: cortexops
     managed-by: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
 
@@ -19,18 +17,15 @@ spec:
       releaseName: cortexops
       valueFiles:
         - values.yaml
+        - values-homelab.yaml
 
   destination:
     server: https://kubernetes.default.svc
     namespace: cortexops
 
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - PruneLast=true
       - ApplyOutOfSyncOnly=true
     retry:
       limit: 5

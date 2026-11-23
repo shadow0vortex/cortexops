@@ -51,3 +51,26 @@ jobs:
           echo "$rendered" | grep -Fq "docker.io/shadow0vortex/cortexops-${service}:ci-check"
         done
         echo "$rendered" | grep -Fq 'path: "/v1"'
+        default_rbac=$(helm template cortexops deploy/helm/cortexops \
+          --show-only templates/rbac.yaml)
+        if echo "$default_rbac" | grep -Fq 'verbs: ["delete"]' || echo "$default_rbac" | grep -Fq 'verbs: ["patch"]'; then
+          echo "Remediation write permissions must be opt-in" >&2
+          exit 1
+        fi
+
+        cluster_read_only=$(helm template cortexops deploy/helm/cortexops \
+          --show-only templates/rbac.yaml \
+          --set clusterWideAccess=true)
+        echo "$cluster_read_only" | grep -Fq 'kind: ClusterRole'
+        echo "$cluster_read_only" | grep -Fq 'name: cortexops-k8s-observe-role'
+        if echo "$cluster_read_only" | grep -Fq 'name: cortexops-k8s-remediation-role'; then
+          echo "Read-only cluster access unexpectedly rendered a remediation role" >&2
+          exit 1
+        fi
+
+        remediation_enabled=$(helm template cortexops deploy/helm/cortexops \
+          --show-only templates/rbac.yaml \
+          --set clusterWideAccess=true \
+          --set allowRemediationWrites=true)
+        echo "$remediation_enabled" | grep -Fq 'name: cortexops-k8s-remediation-role'
+        echo "$remediation_enabled" | grep -Fq 'name: cortexops-remediation-write-binding'

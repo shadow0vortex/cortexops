@@ -93,6 +93,12 @@ unset POSTGRES_PASSWORD NATS_PASSWORD DIAG_API_TOKEN
 
 The chart expects `cortexops-postgres-auth` key `password`; `cortexops-postgres` key `url`; `cortexops-nats-auth` keys `username`, `password`, and `url`; and `cortexops-diag-token` key `token`. Configure secret rotation with the chosen secret-management system and roll deployments after rotating values.
 
+## Kubernetes Access
+
+`clusterWideAccess` defaults to `false`, limiting Kubernetes observation to the release namespace. Set it to `true` when the collector must monitor resources across the cluster; this grants cluster-wide `get`, `list`, and `watch` permissions to the collector and remediation service accounts.
+
+`allowRemediationWrites` defaults to `false`. Keep it disabled for monitoring-only deployments. Enabling it grants the remediation service account permission to delete pods and patch deployments at the selected access scope (`clusterWideAccess` determines whether that scope is namespace-wide or cluster-wide).
+
 ## Install CortexOps
 
 The chart includes the pinned NATS, PostgreSQL, Qdrant, and Temporal dependencies. The root chart's PostgreSQL image is pinned by digest for both amd64 and arm64. Register the upstream repositories, build the committed lock file, then install using the same backend image tag across all services:

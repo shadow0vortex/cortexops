@@ -1,0 +1,33 @@
+clusterWideAccess: true
+allowRemediationWrites: false
+ingress:
+  enabled: false
+
+replicaCount: 1
+pdb:
+  enabled: false
+
+collector:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+correlator:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+topology:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+rca:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+remediation:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
