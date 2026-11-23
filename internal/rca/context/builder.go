@@ -22,25 +22,25 @@ func (b *Builder) Build(incident *correlationv1.CorrelatedIncident) (string, []s
 	var eventIDs []string
 	truncated := false
 
-	sb.WriteString(fmt.Sprintf("Incident ID: %s\n", incident.IncidentId))
-	sb.WriteString(fmt.Sprintf("Title: %s\n", incident.Title))
-	sb.WriteString(fmt.Sprintf("Severity: %s\n", incident.Severity))
-	
+	fmt.Fprintf(&sb, "Incident ID: %s\n", incident.IncidentId)
+	fmt.Fprintf(&sb, "Title: %s\n", incident.Title)
+	fmt.Fprintf(&sb, "Severity: %s\n", incident.Severity)
+
 	if incident.Confidence != nil {
-		sb.WriteString(fmt.Sprintf("Correlation Confidence: %.2f\n", incident.Confidence.Value))
+		fmt.Fprintf(&sb, "Correlation Confidence: %.2f\n", incident.Confidence.Value)
 	}
 
 	sb.WriteString("\n--- CAUSAL CHAIN ---\n")
 	if incident.CausalChain != nil {
 		for i, link := range incident.CausalChain.Links {
-			sb.WriteString(fmt.Sprintf("%d. [%s] -> [%s] (Reason: %s)\n", i+1, link.CauseEventId, link.EffectEventId, link.Reasoning))
+			fmt.Fprintf(&sb, "%d. [%s] -> [%s] (Reason: %s)\n", i+1, link.CauseEventId, link.EffectEventId, link.Reasoning)
 		}
 	}
 
 	sb.WriteString("\n--- TELEMETRY EVIDENCE ---\n")
 	for _, ev := range incident.Evidence {
 		eventIDs = append(eventIDs, ev.EventId)
-		
+
 		// Very naive token truncation: ~4 chars per token.
 		// In production, use a library like tiktoken.
 		if sb.Len() > (b.MaxTokens * 4) {
@@ -49,9 +49,9 @@ func (b *Builder) Build(incident *correlationv1.CorrelatedIncident) (string, []s
 			break
 		}
 
-		sb.WriteString(fmt.Sprintf("Time: %s | Source: %s\n", ev.Timestamp.AsTime().Format("15:04:05"), ev.Source))
+		fmt.Fprintf(&sb, "Time: %s | Source: %s\n", ev.Timestamp.AsTime().Format("15:04:05"), ev.Source)
 		if k8s := ev.GetK8SEvent(); k8s != nil {
-			sb.WriteString(fmt.Sprintf("  Action: %s | Kind: %s | Name: %s | Message: %s\n", k8s.Action, k8s.ResourceKind, k8s.ResourceName, k8s.Message))
+			fmt.Fprintf(&sb, "  Action: %s | Kind: %s | Name: %s | Message: %s\n", k8s.Action, k8s.ResourceKind, k8s.ResourceName, k8s.Message)
 		}
 	}
 

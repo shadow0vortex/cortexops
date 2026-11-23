@@ -23,7 +23,7 @@ func NewHTTPClient(baseURL string) *HTTPTopologyClient {
 
 func (c *HTTPTopologyClient) GetDependencies(ctx context.Context, nodeID string) ([]string, error) {
 	u := fmt.Sprintf("%s/debug/graph/node?id=%s", c.baseURL, url.QueryEscape(nodeID))
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (c *HTTPTopologyClient) GetDependencies(ctx context.Context, nodeID string)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("topology API returned status %d", resp.StatusCode)
@@ -51,7 +51,7 @@ func (c *HTTPTopologyClient) GetDependencies(ctx context.Context, nodeID string)
 
 func (c *HTTPTopologyClient) CalculateBlastRadius(ctx context.Context, nodeID string) ([]string, error) {
 	u := fmt.Sprintf("%s/debug/graph/blast-radius?id=%s", c.baseURL, url.QueryEscape(nodeID))
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (c *HTTPTopologyClient) CalculateBlastRadius(ctx context.Context, nodeID st
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("topology API returned status %d", resp.StatusCode)

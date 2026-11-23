@@ -3,14 +3,13 @@ package temporal
 import (
 	"time"
 
-	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
-	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	apiv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
 
 // RemediationWorkflow orchestrates the safe execution lifecycle using Temporal durability.
-func RemediationWorkflow(ctx workflow.Context, incident *correlationv1.CorrelatedIncident, action *remediationv1.RemediationAction) error {
+func RemediationWorkflow(ctx workflow.Context, incident *apiv1.CorrelatedIncident, action *apiv1.RemediationAction) error {
 	// Standard bounded retries for idempotent K8s API calls
 	retryPolicy := &temporal.RetryPolicy{
 		InitialInterval:    time.Second,
@@ -28,7 +27,7 @@ func RemediationWorkflow(ctx workflow.Context, incident *correlationv1.Correlate
 	var acts *Activities // Used for typed execution calling
 
 	// 1. Policy Evaluation
-	var policyDecision remediationv1.PolicyDecision
+	var policyDecision apiv1.PolicyDecision
 	err := workflow.ExecuteActivity(ctx, acts.EvaluatePolicy, incident, action).Get(ctx, &policyDecision)
 	if err != nil {
 		return err // Activity failure
@@ -47,8 +46,8 @@ func RemediationWorkflow(ctx workflow.Context, incident *correlationv1.Correlate
 		},
 	}
 	approvalCtx := workflow.WithActivityOptions(ctx, approvalOpts)
-	
-	var approvalDecision remediationv1.ApprovalDecision
+
+	var approvalDecision apiv1.ApprovalDecision
 	err = workflow.ExecuteActivity(approvalCtx, acts.RequestApproval, action).Get(ctx, &approvalDecision)
 	if err != nil || !approvalDecision.Approved {
 		workflow.GetLogger(ctx).Info("Remediation rejected or timed out by human")

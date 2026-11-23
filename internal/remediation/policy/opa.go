@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/open-policy-agent/opa/rego"
-	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
-	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	apiv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/shadow0vortex/cortexops/pkg/core"
 )
 
@@ -43,7 +42,7 @@ func NewOPAEngine(topology core.TopologyProvider, metrics core.MetricsRecorder, 
 	}
 }
 
-func (e *OPAEngine) Evaluate(ctx context.Context, incident *correlationv1.CorrelatedIncident, action *remediationv1.RemediationAction) (*remediationv1.PolicyDecision, error) {
+func (e *OPAEngine) Evaluate(ctx context.Context, incident *apiv1.CorrelatedIncident, action *apiv1.RemediationAction) (*apiv1.PolicyDecision, error) {
 	start := time.Now()
 	defer func() {
 		e.metrics.ObserveHistogram(ctx, "cortexops_remediation_policy_evaluation_seconds", time.Since(start).Seconds(), nil)
@@ -54,7 +53,7 @@ func (e *OPAEngine) Evaluate(ctx context.Context, incident *correlationv1.Correl
 	if err := ctx.Err(); err != nil {
 		e.logger.Error("OPA evaluation skipped: context already cancelled", "error", err)
 		e.metrics.IncCounter(ctx, "cortexops_remediation_policy_errors_total", nil)
-		return &remediationv1.PolicyDecision{
+		return &apiv1.PolicyDecision{
 			Allowed:        false,
 			Reasoning:      fmt.Sprintf("Policy engine context cancelled: %v", err),
 			ViolatingRules: []string{"CONTEXT_CANCELLED"},
@@ -77,15 +76,15 @@ func (e *OPAEngine) Evaluate(ctx context.Context, incident *correlationv1.Correl
 		e.logger.Error("OPA evaluation failed", "error", err)
 		e.metrics.IncCounter(ctx, "cortexops_remediation_policy_errors_total", nil)
 		// Fail closed
-		return &remediationv1.PolicyDecision{
-			Allowed:         false,
-			Reasoning:       fmt.Sprintf("Policy engine error: %v", err),
-			ViolatingRules:  []string{"INTERNAL_ENGINE_ERROR"},
+		return &apiv1.PolicyDecision{
+			Allowed:        false,
+			Reasoning:      fmt.Sprintf("Policy engine error: %v", err),
+			ViolatingRules: []string{"INTERNAL_ENGINE_ERROR"},
 		}, nil
 	}
 
 	if len(results) == 0 {
-		return &remediationv1.PolicyDecision{
+		return &apiv1.PolicyDecision{
 			Allowed:   false,
 			Reasoning: "No policy results returned",
 		}, nil
@@ -93,7 +92,7 @@ func (e *OPAEngine) Evaluate(ctx context.Context, incident *correlationv1.Correl
 
 	resMap, ok := results[0].Expressions[0].Value.(map[string]interface{})
 	if !ok {
-		return &remediationv1.PolicyDecision{
+		return &apiv1.PolicyDecision{
 			Allowed:   false,
 			Reasoning: "Invalid policy result format",
 		}, nil
@@ -114,9 +113,9 @@ func (e *OPAEngine) Evaluate(ctx context.Context, incident *correlationv1.Correl
 		if len(denyReasons) > 0 {
 			reasoning = denyReasons[0]
 		}
-		
+
 		e.logger.Warn("OPA Denied action", "action_id", action.ActionId, "reasons", denyReasons)
-		return &remediationv1.PolicyDecision{
+		return &apiv1.PolicyDecision{
 			Allowed:        false,
 			Reasoning:      reasoning,
 			ViolatingRules: denyReasons,
@@ -124,20 +123,21 @@ func (e *OPAEngine) Evaluate(ctx context.Context, incident *correlationv1.Correl
 	}
 
 	e.logger.Info("OPA Approved action", "action_id", action.ActionId, "latency_ms", time.Since(start).Milliseconds())
-	return &remediationv1.PolicyDecision{
+	return &apiv1.PolicyDecision{
 		Allowed:   true,
 		Reasoning: "Passed all deterministic OPA policy checks",
 	}, nil
 }
 
 // CalculateRiskScore returns a deterministic [0.0, 1.0] float dictating approval gates.
-func (e *OPAEngine) CalculateRiskScore(ctx context.Context, incident *correlationv1.CorrelatedIncident, action *remediationv1.RemediationAction) (float32, error) {
+func (e *OPAEngine) CalculateRiskScore(ctx context.Context, incident *apiv1.CorrelatedIncident, action *apiv1.RemediationAction) (float32, error) {
 	var score float32 = 0.0
 
 	// 1. Base Severity Contribution
-	if incident.Severity == "CRITICAL" {
+	switch incident.Severity {
+	case "CRITICAL":
 		score += 0.4
-	} else if incident.Severity == "HIGH" {
+	case "HIGH":
 		score += 0.2
 	}
 
@@ -152,7 +152,7 @@ func (e *OPAEngine) CalculateRiskScore(ctx context.Context, incident *correlatio
 	}
 
 	// 3. Action Criticality
-	if action.Type == remediationv1.ActionType_DEPLOYMENT_ROLLOUT_RESTART {
+	if action.Type == apiv1.ActionType_DEPLOYMENT_ROLLOUT_RESTART {
 		score += 0.2 // higher risk than single pod restart
 	}
 

@@ -11,9 +11,9 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	rcav1 "github.com/shadow0vortex/cortexops/api/v1"
-	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	apiv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/shadow0vortex/cortexops/internal/orchestration/temporal"
 	"github.com/shadow0vortex/cortexops/internal/remediation/action"
 	"github.com/shadow0vortex/cortexops/internal/remediation/approval"
@@ -22,11 +22,10 @@ import (
 	"github.com/shadow0vortex/cortexops/pkg/logger"
 	"github.com/shadow0vortex/cortexops/pkg/telemetry"
 	"github.com/shadow0vortex/cortexops/pkg/topology"
-	"github.com/google/uuid"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"go.temporal.io/sdk/worker"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -35,10 +34,10 @@ import (
 
 // MemoryAuditStore is a simple stub for demo purposes.
 type MemoryAuditStore struct {
-	records []*remediationv1.AuditRecord
+	records []*apiv1.AuditRecord
 }
 
-func (s *MemoryAuditStore) Log(ctx context.Context, record *remediationv1.AuditRecord) error {
+func (s *MemoryAuditStore) Log(ctx context.Context, record *apiv1.AuditRecord) error {
 	s.records = append(s.records, record)
 	return nil
 }
@@ -57,7 +56,7 @@ func main() {
 			status = "degraded"
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"status":        status,
 			"k8s_connected": k8sConnected,
 			"service":       "remediation",
@@ -149,8 +148,8 @@ func main() {
 	if err != nil {
 		log.Error("Failed to connect to NATS", "error", err)
 	} else {
-		defer natsBroker.Close()
-		
+		defer func() { _ = natsBroker.Close() }()
+
 		// Ensure RCA stream exists before subscribing
 		err = natsBroker.InitStream("RCA", []string{"cortex.rca.>"})
 		if err != nil {
@@ -181,27 +180,27 @@ func main() {
 	// Subscribe to RCA reports
 	if natsBroker != nil {
 		err = natsBroker.Subscribe(ctx, "cortex.rca.report", func(ctx context.Context, payload []byte) error {
-			report := &rcav1.RCAReport{}
+			report := &apiv1.RCAReport{}
 			if err := proto.Unmarshal(payload, report); err != nil {
 				return err
 			}
-			
+
 			log.Info("Validation: Remediation proposing action from RCA", "rcaID", report.RcaId, "incidentID", report.IncidentId)
 
 			// Simple heuristic: if we see "rollout" or "demo-frontend", propose rollout restart
-			act := &remediationv1.RemediationAction{
-				ActionId:   uuid.New().String(),
-				IncidentId: report.IncidentId,
-				Type:       remediationv1.ActionType_DEPLOYMENT_ROLLOUT_RESTART,
-				State:      remediationv1.ActionState_PROPOSED,
+			act := &apiv1.RemediationAction{
+				ActionId:        uuid.New().String(),
+				IncidentId:      report.IncidentId,
+				Type:            apiv1.ActionType_DEPLOYMENT_ROLLOUT_RESTART,
+				State:           apiv1.ActionState_PROPOSED,
 				TargetNamespace: "cortexops-demo",
 				TargetResource:  "demo-frontend",
-				CreatedAt:  timestamppb.Now(),
-				UpdatedAt:  timestamppb.Now(),
+				CreatedAt:       timestamppb.Now(),
+				UpdatedAt:       timestamppb.Now(),
 			}
 
 			// Dummy incident context just to satisfy policy engine signature for this demo
-			incidentCtx := &rcav1.CorrelatedIncident{
+			incidentCtx := &apiv1.CorrelatedIncident{
 				IncidentId: report.IncidentId,
 			}
 

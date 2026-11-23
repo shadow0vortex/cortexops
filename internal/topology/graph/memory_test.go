@@ -39,9 +39,9 @@ func TestMemoryGraphStore_OrphanedEdgeCleanup(t *testing.T) {
 	store := NewMemoryGraphStore()
 	ctx := context.Background()
 
-	store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-1"})
-	store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-2"})
-	store.UpsertEdge(ctx, "node-2", "node-1", topologyv1.EdgeType_ROUTES_TO)
+	_ = store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-1"})
+	_ = store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-2"})
+	_ = store.UpsertEdge(ctx, "node-2", "node-1", topologyv1.EdgeType_ROUTES_TO)
 
 	// Verify edge exists
 	deps, _ := store.GetDependencies(ctx, "node-2")
@@ -50,7 +50,7 @@ func TestMemoryGraphStore_OrphanedEdgeCleanup(t *testing.T) {
 	}
 
 	// Delete target node
-	store.DeleteNode(ctx, "node-1")
+	_ = store.DeleteNode(ctx, "node-1")
 
 	// Verify inbound edge was cleaned up
 	deps, _ = store.GetDependencies(ctx, "node-2")
@@ -64,11 +64,11 @@ func TestMemoryGraphStore_CalculateBlastRadius(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup graph: 1 -> 2 -> 3
-	store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-1"})
-	store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-2"})
-	store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-3"})
-	store.UpsertEdge(ctx, "node-1", "node-2", topologyv1.EdgeType_ROUTES_TO)
-	store.UpsertEdge(ctx, "node-2", "node-3", topologyv1.EdgeType_ROUTES_TO)
+	_ = store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-1"})
+	_ = store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-2"})
+	_ = store.UpsertNode(ctx, &topologyv1.TopologyNode{Id: "node-3"})
+	_ = store.UpsertEdge(ctx, "node-1", "node-2", topologyv1.EdgeType_ROUTES_TO)
+	_ = store.UpsertEdge(ctx, "node-2", "node-3", topologyv1.EdgeType_ROUTES_TO)
 
 	impacted, err := store.CalculateBlastRadius(ctx, "node-1")
 	if err != nil {

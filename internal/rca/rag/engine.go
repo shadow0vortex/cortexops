@@ -6,11 +6,10 @@ import (
 	"log/slog"
 	"time"
 
-	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
-	rcav1 "github.com/shadow0vortex/cortexops/api/v1"
+	"github.com/google/uuid"
+	apiv1 "github.com/shadow0vortex/cortexops/api/v1"
 	rcactx "github.com/shadow0vortex/cortexops/internal/rca/context"
 	"github.com/shadow0vortex/cortexops/pkg/core"
-	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -39,7 +38,7 @@ func NewEngine(embedder core.EmbeddingClient, llm core.LLMClient, vectorDB core.
 }
 
 // GenerateRCA processes a CorrelatedIncident and deterministically builds an AI-assisted RCAReport.
-func (e *Engine) GenerateRCA(ctx context.Context, incident *correlationv1.CorrelatedIncident) error {
+func (e *Engine) GenerateRCA(ctx context.Context, incident *apiv1.CorrelatedIncident) error {
 	start := time.Now()
 	defer func() {
 		e.metrics.ObserveHistogram(ctx, "cortexops_ai_inference_latency_seconds", time.Since(start).Seconds(), nil)
@@ -50,7 +49,7 @@ func (e *Engine) GenerateRCA(ctx context.Context, incident *correlationv1.Correl
 
 	// 2. Fetch Embeddings and Historical Context
 	// We wrap this in timeout and fallback to Degraded Mode on failure to guarantee delivery.
-	var historical []*rcav1.HistoricalSimilarity
+	var historical []*apiv1.HistoricalSimilarity
 	embedCtx, embedCancel := context.WithTimeout(ctx, 3*time.Second)
 	defer embedCancel()
 
@@ -77,12 +76,12 @@ func (e *Engine) GenerateRCA(ctx context.Context, incident *correlationv1.Correl
 	}
 
 	// 5. Publish Output (Immutable, Traceable)
-	report := &rcav1.RCAReport{
+	report := &apiv1.RCAReport{
 		RcaId:       uuid.New().String(),
 		IncidentId:  incident.IncidentId,
 		GeneratedAt: timestamppb.Now(),
 		Analysis:    analysis,
-		GroundedEvidence: &rcav1.RCAEvidence{
+		GroundedEvidence: &apiv1.RCAEvidence{
 			TelemetryEventIds: evidenceIDs,
 			WasTruncated:      truncated,
 		},
@@ -109,7 +108,7 @@ func (e *Engine) GenerateRCA(ctx context.Context, incident *correlationv1.Correl
 	return nil
 }
 
-func (e *Engine) assemblePrompt(incident string, history []*rcav1.HistoricalSimilarity) string {
+func (e *Engine) assemblePrompt(incident string, history []*apiv1.HistoricalSimilarity) string {
 	prompt := "You are CortexOps, an advisory AIOps system. Analyze the following Kubernetes incident deterministic telemetry.\n\n"
 	prompt += "--- START TELEMETRY CONTEXT ---\n"
 	prompt += incident + "\n"

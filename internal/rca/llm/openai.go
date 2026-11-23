@@ -98,7 +98,7 @@ func (c *OpenAIClient) GenerateRCA(ctx context.Context, prompt string) (string, 
 	if err != nil {
 		return "", fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -145,7 +145,7 @@ func (c *OpenAIClient) GenerateEmbeddings(ctx context.Context, text string) ([]f
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OpenAI API returned non-200 status: %d", resp.StatusCode)

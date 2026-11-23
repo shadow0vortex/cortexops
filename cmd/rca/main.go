@@ -10,13 +10,13 @@ import (
 	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/shadow0vortex/cortexops/internal/rca/llm"
 	"github.com/shadow0vortex/cortexops/internal/rca/memory"
 	"github.com/shadow0vortex/cortexops/internal/rca/rag"
 	"github.com/shadow0vortex/cortexops/pkg/broker"
 	"github.com/shadow0vortex/cortexops/pkg/logger"
 	"github.com/shadow0vortex/cortexops/pkg/telemetry"
-	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -29,7 +29,7 @@ func main() {
 	// Setup Diagnostics Server
 	http.HandleFunc("/debug/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"status":  "ok",
 			"service": "rca",
 		})
@@ -52,7 +52,7 @@ func main() {
 		log.Error("Failed to connect to NATS", "error", err)
 		os.Exit(1)
 	}
-	defer natsBroker.Close()
+	defer func() { _ = natsBroker.Close() }()
 
 	// Initialize RCA Stream
 	err = natsBroker.InitStream("RCA", []string{"cortex.rca.>"})

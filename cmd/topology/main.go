@@ -96,11 +96,11 @@ func main() {
 		if err != nil {
 			log.Warn("Failed to initialize graph persister", "error", err)
 		} else {
-			defer persister.Close()
+			defer func() { _ = persister.Close() }()
 			if err := persister.Restore(context.Background()); err != nil {
 				log.Error("Failed to restore topology graph from snapshot", "error", err)
 			}
-			
+
 			go func() {
 				ticker := time.NewTicker(15 * time.Second)
 				defer ticker.Stop()
@@ -120,7 +120,7 @@ func main() {
 
 	// Initialize and Start Discovery
 	discoverer := discovery.NewK8sDiscovery(client, graphStore, metrics, log)
-	
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -155,7 +155,7 @@ func main() {
 
 	<-ctx.Done()
 	log.Info("Shutting down topology service...")
-	
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {

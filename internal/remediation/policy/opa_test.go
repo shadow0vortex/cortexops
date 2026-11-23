@@ -5,15 +5,16 @@ import (
 	"log/slog"
 	"testing"
 
-	correlationv1 "github.com/shadow0vortex/cortexops/api/v1"
-	remediationv1 "github.com/shadow0vortex/cortexops/api/v1"
+	apiv1 "github.com/shadow0vortex/cortexops/api/v1"
 )
 
 type mockMetrics struct{}
-func (m *mockMetrics) IncCounter(ctx context.Context, name string, labels map[string]string) {}
-func (m *mockMetrics) ObserveHistogram(ctx context.Context, name string, value float64, labels map[string]string) {}
-func (m *mockMetrics) SetGauge(ctx context.Context, name string, value float64, labels map[string]string) {}
 
+func (m *mockMetrics) IncCounter(ctx context.Context, name string, labels map[string]string) {}
+func (m *mockMetrics) ObserveHistogram(ctx context.Context, name string, value float64, labels map[string]string) {
+}
+func (m *mockMetrics) SetGauge(ctx context.Context, name string, value float64, labels map[string]string) {
+}
 
 func TestOPAEngine_Evaluate(t *testing.T) {
 	metrics := &mockMetrics{}
@@ -21,20 +22,20 @@ func TestOPAEngine_Evaluate(t *testing.T) {
 	engine := NewOPAEngine(nil, metrics, logger)
 	ctx := context.Background()
 
-	incident := &correlationv1.CorrelatedIncident{
+	incident := &apiv1.CorrelatedIncident{
 		Severity: "HIGH",
 	}
 
 	tests := []struct {
 		name       string
-		action     *remediationv1.RemediationAction
+		action     *apiv1.RemediationAction
 		wantAllow  bool
 		wantReason string
 	}{
 		{
 			name: "Allowed Pod Restart",
-			action: &remediationv1.RemediationAction{
-				Type:            remediationv1.ActionType_POD_RESTART,
+			action: &apiv1.RemediationAction{
+				Type:            apiv1.ActionType_POD_RESTART,
 				TargetNamespace: "default",
 				TargetResource:  "api-123",
 			},
@@ -42,8 +43,8 @@ func TestOPAEngine_Evaluate(t *testing.T) {
 		},
 		{
 			name: "Denied Kube-System",
-			action: &remediationv1.RemediationAction{
-				Type:            remediationv1.ActionType_POD_RESTART,
+			action: &apiv1.RemediationAction{
+				Type:            apiv1.ActionType_POD_RESTART,
 				TargetNamespace: "kube-system",
 				TargetResource:  "coredns",
 			},
@@ -51,8 +52,8 @@ func TestOPAEngine_Evaluate(t *testing.T) {
 		},
 		{
 			name: "Denied Invalid Action Type",
-			action: &remediationv1.RemediationAction{
-				Type:            remediationv1.ActionType_ACTION_TYPE_UNSPECIFIED,
+			action: &apiv1.RemediationAction{
+				Type:            apiv1.ActionType_ACTION_TYPE_UNSPECIFIED,
 				TargetNamespace: "default",
 			},
 			wantAllow: false,

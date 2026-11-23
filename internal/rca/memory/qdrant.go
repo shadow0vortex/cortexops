@@ -46,7 +46,7 @@ func (q *QdrantClient) UpsertIncident(ctx context.Context, incidentID string, em
 	if err != nil {
 		return fmt.Errorf("qdrant connection failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -59,8 +59,8 @@ func (q *QdrantClient) UpsertIncident(ctx context.Context, incidentID string, em
 func (q *QdrantClient) SearchSimilar(ctx context.Context, embedding []float32, limit int, namespace string) ([]*rcav1.HistoricalSimilarity, error) {
 	// A robust implementation would use query filters on the namespace payload.
 	payload := map[string]interface{}{
-		"vector": embedding,
-		"limit":  limit,
+		"vector":       embedding,
+		"limit":        limit,
 		"with_payload": true,
 	}
 
@@ -72,7 +72,7 @@ func (q *QdrantClient) SearchSimilar(ctx context.Context, embedding []float32, l
 	if err != nil {
 		return nil, fmt.Errorf("qdrant search failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("qdrant search rejected")
@@ -80,6 +80,6 @@ func (q *QdrantClient) SearchSimilar(ctx context.Context, embedding []float32, l
 
 	// Parse response payload and construct HistoricalSimilarity list...
 	// Stubbing parsing for scaffolding purposes.
-	
+
 	return []*rcav1.HistoricalSimilarity{}, nil
 }

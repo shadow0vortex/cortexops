@@ -43,7 +43,7 @@ func main() {
 			status = "degraded"
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"status":        status,
 			"k8s_connected": k8sConnected,
 			"service":       "collector",
@@ -77,12 +77,12 @@ func main() {
 			// not silently accepted.
 			if os.Getenv("ENVIRONMENT") == "production" {
 				log.Error(
-					"FATAL: DOCKER_COMPOSE_ENV=true is set in a production environment. "+
-						"This would disable TLS verification for the Kubernetes API server. "+
-						"This is a critical security misconfiguration. "+
+					"FATAL: DOCKER_COMPOSE_ENV=true is set in a production environment. " +
+						"This would disable TLS verification for the Kubernetes API server. " +
+						"This is a critical security misconfiguration. " +
 						"Remove DOCKER_COMPOSE_ENV or ENVIRONMENT from the container configuration.",
-			)
-			os.Exit(1)
+				)
+				os.Exit(1)
 			}
 			log.Warn("DOCKER_COMPOSE_ENV=true: rewriting loopback addresses to host.docker.internal. TLS verification disabled for local kubeconfig access. This mode is DEVELOPMENT ONLY.")
 			config.Host = strings.ReplaceAll(config.Host, "127.0.0.1", "host.docker.internal")
@@ -127,7 +127,7 @@ func main() {
 		log.Error("Failed to connect to NATS", "error", err)
 		os.Exit(1)
 	}
-	defer natsBroker.Close()
+	defer func() { _ = natsBroker.Close() }()
 
 	// Initialize Streams
 	err = natsBroker.InitStream("TELEMETRY", []string{"cortex.telemetry.>"})

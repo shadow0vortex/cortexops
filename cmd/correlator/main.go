@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"github.com/shadow0vortex/cortexops/internal/correlation/causal"
 	"github.com/shadow0vortex/cortexops/internal/correlation/engine"
 	"github.com/shadow0vortex/cortexops/internal/correlation/heuristics"
@@ -18,7 +19,6 @@ import (
 	"github.com/shadow0vortex/cortexops/pkg/logger"
 	"github.com/shadow0vortex/cortexops/pkg/telemetry"
 	"github.com/shadow0vortex/cortexops/pkg/topology"
-	eventsv1 "github.com/shadow0vortex/cortexops/api/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -31,7 +31,7 @@ func main() {
 	// Setup Diagnostics Server
 	http.HandleFunc("/debug/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"status":  "ok",
 			"service": "correlator",
 		})
@@ -54,7 +54,7 @@ func main() {
 		log.Error("Failed to connect to NATS", "error", err)
 		os.Exit(1)
 	}
-	defer natsBroker.Close()
+	defer func() { _ = natsBroker.Close() }()
 
 	// Initialize Streams
 	err = natsBroker.InitStream("INCIDENTS", []string{"cortex.incident.>"})

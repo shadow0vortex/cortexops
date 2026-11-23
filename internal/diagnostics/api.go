@@ -60,7 +60,7 @@ func (api *API) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 func (api *API) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 }
 
 func (api *API) handleListNodes(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +71,7 @@ func (api *API) handleListNodes(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"count": len(nodes),
 		"nodes": nodes,
 	})
@@ -92,7 +92,7 @@ func (api *API) handleBlastRadius(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"node":     id,
 		"count":    len(impacted),
 		"impacted": impacted,

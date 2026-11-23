@@ -15,9 +15,13 @@ import (
 
 // MockMetricsRecorder implements core.MetricsRecorder for testing.
 type MockMetricsRecorder struct{}
-func (m *MockMetricsRecorder) IncCounter(ctx context.Context, name string, labels map[string]string) {}
-func (m *MockMetricsRecorder) SetGauge(ctx context.Context, name string, value float64, labels map[string]string) {}
-func (m *MockMetricsRecorder) ObserveHistogram(ctx context.Context, name string, value float64, labels map[string]string) {}
+
+func (m *MockMetricsRecorder) IncCounter(ctx context.Context, name string, labels map[string]string) {
+}
+func (m *MockMetricsRecorder) SetGauge(ctx context.Context, name string, value float64, labels map[string]string) {
+}
+func (m *MockMetricsRecorder) ObserveHistogram(ctx context.Context, name string, value float64, labels map[string]string) {
+}
 
 func TestK8sExecutor_DryRun(t *testing.T) {
 	client := fake.NewSimpleClientset(&corev1.Pod{
@@ -53,8 +57,10 @@ func TestK8sExecutor_Rollback(t *testing.T) {
 			},
 		},
 	}
-	client.AppsV1().Deployments("default").Create(context.Background(), deploy, metav1.CreateOptions{})
-	
+	if _, err := client.AppsV1().Deployments("default").Create(context.Background(), deploy, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("create deployment fixture: %v", err)
+	}
+
 	executor := NewK8sExecutor(client, &MockMetricsRecorder{}, slog.New(slog.NewTextHandler(os.Stdout, nil)))
 	ctx := context.Background()
 
@@ -75,5 +81,3 @@ func TestK8sExecutor_Rollback(t *testing.T) {
 		t.Errorf("expected 'old-time' annotation after rollback, got %s", updated.Spec.Template.Annotations["cortexops.io/restartedAt"])
 	}
 }
-
-func int32Ptr(i int32) *int32 { return &i }

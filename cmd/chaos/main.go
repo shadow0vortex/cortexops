@@ -26,7 +26,9 @@ func main() {
 	case "duplicate-storm":
 		size := 100
 		if len(os.Args) > 2 {
-			fmt.Sscanf(os.Args[2], "%d", &size)
+			if _, err := fmt.Sscanf(os.Args[2], "%d", &size); err != nil {
+				log.Fatalf("Invalid duplicate-storm size: %v", err)
+			}
 		}
 		runDuplicateStorm(size)
 	case "workflow-idempotency":
@@ -63,7 +65,10 @@ func runDuplicateStorm(stormSize int) {
 			"pod":       "demo-frontend-x",
 		},
 	}
-	payloadBytes, _ := json.Marshal(payloadData)
+	payloadBytes, err := json.Marshal(payloadData)
+	if err != nil {
+		log.Fatalf("Failed to marshal payload: %v", err)
+	}
 
 	// Base event
 	event := &apiv1.TelemetryEvent{
@@ -89,7 +94,9 @@ func runDuplicateStorm(stormSize int) {
 			log.Fatalf("Failed to publish: %v", err)
 		}
 	}
-	nc.Flush()
+	if err := nc.Flush(); err != nil {
+		log.Fatalf("Failed to flush NATS: %v", err)
+	}
 	fmt.Printf("Publishing and flushing %d events took %v\n", stormSize, time.Since(start))
 
 	fmt.Println("Waiting for correlation window (5s)...")
@@ -100,11 +107,16 @@ func runDuplicateStorm(stormSize int) {
 	if err != nil {
 		log.Fatalf("Failed to get incidents: %v", err)
 	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Failed to read incidents response: %v", err)
+	}
 
 	var incidents map[string]interface{}
-	json.Unmarshal(body, &incidents)
+	if err := json.Unmarshal(body, &incidents); err != nil {
+		log.Fatalf("Failed to parse incidents response: %v", err)
+	}
 
 	// Since we send the exact same ID and the correlator window groups by signature
 	fmt.Printf("Active incidents response: %s\n", string(body))
@@ -125,12 +137,12 @@ func runWorkflowIdempotency() {
 
 	// Send duplicate RCA reports which trigger remediation
 	report := &apiv1.RCAReport{
-		RcaId:       "chaos-rca-999",
-		IncidentId:  "chaos-incident-999",
-		Analysis:    "Simulated chaos idempotency root cause",
-		ConfidenceScore: 0.99,
+		RcaId:                    "chaos-rca-999",
+		IncidentId:               "chaos-incident-999",
+		Analysis:                 "Simulated chaos idempotency root cause",
+		ConfidenceScore:          0.99,
 		AdvisoryRemediationSteps: []string{"restart-pod"},
-		GeneratedAt: timestamppb.Now(),
+		GeneratedAt:              timestamppb.Now(),
 	}
 	data, err := proto.Marshal(report)
 	if err != nil {
@@ -139,9 +151,13 @@ func runWorkflowIdempotency() {
 
 	fmt.Println("Injecting 5 identical RCA reports to cortex.rca.report...")
 	for i := 0; i < 5; i++ {
-		nc.Publish("cortex.rca.report", data)
+		if err := nc.Publish("cortex.rca.report", data); err != nil {
+			log.Fatalf("Failed to publish RCA report: %v", err)
+		}
 	}
-	nc.Flush()
+	if err := nc.Flush(); err != nil {
+		log.Fatalf("Failed to flush NATS: %v", err)
+	}
 
 	fmt.Println("Waiting for Remediation service to trigger workflows (5s)...")
 	time.Sleep(5 * time.Second)
@@ -160,10 +176,10 @@ func runFailureInjection(scenario string) {
 
 	fmt.Println("Waiting 10 seconds for events to propagate and workflows to complete...")
 	time.Sleep(10 * time.Second)
-	
+
 	resp, err := http.Get("http://localhost:9091/debug/incidents/active")
 	if err == nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		body, _ := io.ReadAll(resp.Body)
 		fmt.Printf("Post-injection incidents: %s\n", string(body))
 	}
