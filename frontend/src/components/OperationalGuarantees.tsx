@@ -5,7 +5,7 @@ import { CheckCircle } from "lucide-react";
 
 const guarantees = [
   { title: "Deterministic Execution", desc: "Workflows produce predictable outcomes under retries and failures." },
-  { title: "Replay Safety", desc: "Workflow re-execution does not create unintended side effects." },
+  { title: "Replay Safety", desc: "NATS and Temporal provide durable, replayable pipeline boundaries." },
   { title: "Fail-Closed Governance", desc: "Unsafe actions are blocked before infrastructure mutation occurs." },
   { title: "Rollback Protection", desc: "Remediation workflows verify stabilization before completion." }
 ];

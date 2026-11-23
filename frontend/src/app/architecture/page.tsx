@@ -7,7 +7,7 @@ export default function ArchitecturePage() {
   const nodes = [
     { id: 1, title: "Telemetry Ingestion", icon: Server, desc: "client-go Informers outputting strongly-typed Protobufs via NATS JetStream" },
     { id: 2, title: "Topology Graph", icon: Database, desc: "In-memory Directed Graph + Asynchronous PostgreSQL for blast-radius analysis" },
-    { id: 3, title: "Correlation Lifecycle", icon: GitMerge, desc: "Temporal windowing and heuristic scoring to detect causality" },
+    { id: 3, title: "Correlation Lifecycle", icon: GitMerge, desc: "Time-windowed heuristic scoring and topology-aware incident grouping" },
     { id: 4, title: "Remediation Workflow", icon: ShieldCheck, desc: "Orchestrated OPA execution with Dry-Run -> Execute -> Verify -> Rollback" },
     { id: 5, title: "Replay Recovery", icon: RefreshCcw, desc: "Durable Temporal workflows with state persistence and automatic retries" },
   ];

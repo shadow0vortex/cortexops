@@ -35,8 +35,8 @@ export default function ObservabilityPage() {
             <AlertCircle className="w-4 h-4 text-cortex-400" />
             <span className="text-sm font-medium">Active Incidents</span>
           </div>
-          <div className="text-6xl font-bold text-white z-10">14</div>
-          <div className="text-xs text-zinc-500 mt-2 z-10">Last 24 hours</div>
+          <div className="text-3xl font-bold text-white z-10">Demo mode</div>
+          <div className="text-xs text-zinc-500 mt-2 z-10">Live incident API not connected</div>
           {/* Mock Graph line */}
           <div className="absolute bottom-0 left-0 right-0 h-24 opacity-50 pointer-events-none">
             <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full stroke-cortex-400 fill-none" strokeWidth="2">
@@ -58,9 +58,9 @@ export default function ObservabilityPage() {
             <span className="text-sm font-medium">Replay Lag</span>
           </div>
           <div className="text-5xl font-bold text-white flex items-baseline gap-1">
-            320<span className="text-2xl text-zinc-500">ms</span>
+            5<span className="text-2xl text-zinc-500">s</span>
           </div>
-          {/* Mock Gauge */}
+          {/* Demo visualization */}
           <div className="w-full h-12 mt-4 relative">
             <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
               <motion.div 
@@ -79,9 +79,9 @@ export default function ObservabilityPage() {
             <Activity className="w-4 h-4 text-emerald-400" />
             <span className="text-sm font-medium">Topology Health Score</span>
           </div>
-          <div className="text-5xl font-bold text-emerald-400">98.5%</div>
+          <div className="text-3xl font-bold text-emerald-400">Unmeasured</div>
           
-          {/* Mock Radial */}
+          {/* Demo visualization */}
           <div className="absolute bottom-[-20px] right-[-20px] w-40 h-40 border-4 border-emerald-500/20 rounded-full flex items-center justify-center pointer-events-none">
              <motion.div 
                initial={{ rotate: -135 }}
@@ -102,7 +102,7 @@ export default function ObservabilityPage() {
                <span className="text-xs text-zinc-500">Live</span>
             </div>
          </div>
-         {/* Simulated glowing wave graph */}
+         {/* Demo throughput visualization */}
          <div className="flex-1 relative w-full h-full flex items-end">
            <svg viewBox="0 0 1000 200" preserveAspectRatio="none" className="absolute w-full h-full bottom-0">
              <defs>
@@ -148,10 +148,10 @@ export default function ObservabilityPage() {
       {/* Bottom Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
          {[
-           { label: "Correlation Windows", val: "1050+" },
-           { label: "Workflow Success Rate", val: "99.2%" },
-           { label: "Remediation Success", val: "98.1%" },
-           { label: "Mean Time To Detect", val: "4.8m" },
+           { label: "Correlation", val: "Heuristic" },
+           { label: "Workflows", val: "Temporal" },
+           { label: "Policy", val: "OPA" },
+           { label: "Deployment", val: "Kind demo" },
          ].map((m, i) => (
            <motion.div 
              key={i} 

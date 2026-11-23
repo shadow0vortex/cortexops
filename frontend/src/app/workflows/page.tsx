@@ -20,7 +20,7 @@ export default function WorkflowsPage() {
             Remediation <span className="text-transparent bg-clip-text bg-gradient-to-r from-cortex-300 to-cortex-600">Workflows</span>
           </h1>
           <p className="text-xl text-zinc-400 max-w-3xl font-light">
-            CortexOps leverages Temporal to provide durable, replay-safe, and highly-available remediation pipelines. Never lose state during an infrastructure failure.
+            CortexOps uses Temporal to provide durable, replay-safe remediation workflows. Cluster actions remain constrained by OPA policy and explicit approval rules.
           </p>
         </div>
 

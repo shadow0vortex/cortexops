@@ -4,9 +4,9 @@ import { Activity, Layers, ShieldCheck, Zap, Repeat } from "lucide-react";
 
 export function StatusStrip() {
   const metrics = [
-    { icon: <Zap className="w-5 h-5 text-cortex-400" />, label: "39,000+", sub: "Events/sec" },
-    { icon: <Layers className="w-5 h-5 text-cortex-400" />, label: "100k", sub: "Event Storm Tested" },
-    { icon: <ShieldCheck className="w-5 h-5 text-cortex-400" />, label: "Validated", sub: "Replay Safety" },
+    { icon: <Zap className="w-5 h-5 text-cortex-400" />, label: "Local kind", sub: "Live cluster demo" },
+    { icon: <Layers className="w-5 h-5 text-cortex-400" />, label: "End to end", sub: "Event to workflow" },
+    { icon: <ShieldCheck className="w-5 h-5 text-cortex-400" />, label: "Fail closed", sub: "OPA remediation" },
     { icon: <Activity className="w-5 h-5 text-cortex-400" />, label: "Topology-Aware", sub: "Correlation" },
     { icon: <Repeat className="w-5 h-5 text-cortex-400" />, label: "Durable", sub: "Temporal Workflows" },
     { icon: <ShieldCheck className="w-5 h-5 text-cortex-400" />, label: "OPA", sub: "Policy Enforcement" },
