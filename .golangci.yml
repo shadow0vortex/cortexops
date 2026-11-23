@@ -1,0 +1,16 @@
+version: "2"
+
+run:
+linters:
+  default: standard
+  disable:
+    - govet
+    - staticcheck
+
+exclusions:
+  paths:
+    - "frontend.*node_modules.*"
+  rules:
+    - linters:
+        - staticcheck
+      text: "github.com/open-policy-agent/opa/rego is deprecated"

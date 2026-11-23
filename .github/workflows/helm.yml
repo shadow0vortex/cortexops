@@ -42,6 +42,7 @@ jobs:
 
     - name: Helm Template Production Configuration
       run: |
+        set -euo pipefail
         rendered=$(helm template cortexops deploy/helm/cortexops \
           --set ingress.enabled=true \
           --set ingress.host=api.example.com \
@@ -49,4 +50,4 @@ jobs:
         for service in collector correlator topology rca remediation; do
           echo "$rendered" | grep -Fq "docker.io/shadow0vortex/cortexops-${service}:ci-check"
         done
-        echo "$rendered" | grep -Fq 'path: /v1'
+        echo "$rendered" | grep -Fq 'path: "/v1"'
